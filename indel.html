@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSO - 医院空间句法优化器 Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 JSZip 用于打包导出 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .scrollbar-hide::-webkit-scrollbar { display: none; }
+            .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; overflow: hidden; user-select: none; }
+        
+        .canvas-container { position: relative; overflow: hidden; background-color: #f3f4f6; }
+        
+        /* 针对不同模式改变鼠标样式 */
+        .cursor-pan { cursor: grab; }
+        .cursor-panning { cursor: grabbing; }
+        .cursor-draw { cursor: crosshair; }
+        .cursor-select { cursor: default; }
+        .cursor-move { cursor: move; }
+        
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transform: translate(15px, 15px);
+        }
+        
+        /* 真正的光谱渐变 */
+        .bg-gradient-spectrum {
+            background: linear-gradient(to right, 
+                hsl(240, 100%, 50%), /* Deep Blue */
+                hsl(200, 100%, 50%), /* Light Blue */
+                hsl(120, 100%, 50%), /* Green */
+                hsl(60, 100%, 50%),  /* Yellow */
+                hsl(30, 100%, 50%),  /* Orange */
+                hsl(0, 100%, 50%)    /* Red */
+            );
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 h-screen flex overflow-hidden">
+    <!-- Sidebar Tools -->
+    <div class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 shrink-0">
+        <div class="p-4 border-b border-gray-100">
+            <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2 group cursor-pointer" onclick="handleRename()" title="点击重命名">
+                <i class="fa fa-line-chart text-blue-600"></i>
+                <span id="projectTitle">HSO Project</span>
+                <i class="fa fa-pencil text-gray-300 text-xs group-hover:text-blue-500 ml-1"></i>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Hospital Syntax Optimizer</p>
+        </div>
+
+        <div class="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            
+            <!-- Project Management -->
+            <div class="space-y-2 pb-4 border-b border-gray-100">
+                <label class="text-xs font-semibold text-slate-400 uppercase">项目管理</label>
+                <button id="exportBtn" onclick="handleExport()" class="w-full flex items-center justify-center gap-2 py-2 px-4 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700 transition-colors shadow-sm">
+                    <i class="fa fa-download"></i>
+                    导出项目包 (.zip)
+                </button>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-800 leading-relaxed border border-blue-100">
+                <p><strong>操作指南:</strong></p>
+                <ul class="list-disc pl-3 mt-1 space-y-1 text-blue-700/80">
+                    <li><strong>中键/空格+左键</strong>: 平移画布</li>
+                    <li><strong>滚轮</strong>: 缩放视图</li>
+                    <li><strong>左键</strong>: 点选 / 框选</li>
+                    <li><strong>拖拽</strong>: 移动轴线 / 编辑端点</li>
+                    <li><strong>Delete</strong>: 删除选中</li>
+                    <li><strong>Ctrl+Z</strong>: 撤销</li>
+                </ul>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-400 uppercase">1. 底图导入</label>
+                <div class="relative group">
+                    <button id="uploadBtn" class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors">
+                        <i class="fa fa-upload"></i>
+                        上传 DXF/图片
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-400 uppercase">2. 工具模式</label>
+                <div class="flex gap-2">
+                    <button id="selectBtn" onclick="setMode('SELECT')" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg text-xs transition-all bg-gray-100 hover:bg-gray-200" title="选择/编辑 (V)">
+                        <i class="fa fa-mouse-pointer text-base"></i>
+                        选择 (V)
+                    </button>
+                    <button id="drawBtn" onclick="setMode('DRAW')" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg text-xs transition-all hover:bg-gray-100" title="绘制轴线 (P)">
+                        <i class="fa fa-pencil text-base"></i>
+                        绘制 (P)
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-400 uppercase">3. 功能标记 (POI)</label>
+                <!-- New Entrance Button Added -->
+                <button id="entranceBtn" onclick="setMode('POI_ENTRANCE')" class="poi-btn w-full mb-2 flex items-center justify-center gap-2 p-2 rounded border text-xs border-amber-200 bg-amber-50 text-amber-700 font-bold hover:bg-amber-100 transition-colors">
+                    <i class="fa fa-sign-in text-lg"></i>
+                    添加出入口 (Entrance)
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="emergencyBtn" onclick="setMode('POI_EMERGENCY')" class="poi-btn flex flex-col items-center justify-center p-2 rounded border text-xs border-gray-100 hover:bg-gray-50">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mb-1 shadow-sm"></div>
+                        急诊入口
+                    </button>
+                    <button id="surgeryBtn" onclick="setMode('POI_SURGERY')" class="poi-btn flex flex-col items-center justify-center p-2 rounded border text-xs border-gray-100 hover:bg-gray-50">
+                        <div class="w-3 h-3 rounded-full bg-blue-500 mb-1 shadow-sm"></div>
+                        手术部
+                    </button>
+                    <button id="icuBtn" onclick="setMode('POI_ICU')" class="poi-btn flex flex-col items-center justify-center p-2 rounded border text-xs border-gray-100 hover:bg-gray-50">
+                        <div class="w-3 h-3 rounded-full bg-purple-500 mb-1 shadow-sm"></div>
+                        ICU
+                    </button>
+                    <button id="wardBtn" onclick="setMode('POI_WARD')" class="poi-btn flex flex-col items-center justify-center p-2 rounded border text-xs border-gray-100 hover:bg-gray-50">
+                        <div class="w-3 h-3 rounded-full bg-emerald-500 mb-1 shadow-sm"></div>
+                        护士站
+                    </button>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-100">
+                <div class="text-xs text-gray-400 mb-2 flex justify-between items-center">
+                    <span id="legendTitle">图例 (Legend)</span>
+                    <span id="analysisMode" class="text-[10px] bg-gray-100 px-1 rounded text-gray-500">Global Int</span>
+                </div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-full h-3 rounded bg-gradient-spectrum shadow-inner border border-gray-200"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400">
+                    <span id="legendLow">Low / Deep</span>
+                    <span id="legendHigh">High / Shallow</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col relative overflow-hidden">
+        <!-- Overlay Stats -->
+        <div class="absolute top-4 left-4 z-10 pointer-events-none flex gap-2">
+            <div class="bg-white/90 backdrop-blur shadow-sm rounded-lg p-2 px-3 border border-gray-200 flex flex-col pointer-events-auto">
+                <span class="text-xs text-gray-500 uppercase font-semibold">Scale</span>
+                <span id="zoomLevel" class="text-sm font-mono font-bold text-slate-700">100%</span>
+            </div>
+             <div class="bg-white/90 backdrop-blur shadow-sm rounded-lg p-2 px-3 border border-gray-200 flex flex-col pointer-events-auto">
+                <span class="text-xs text-gray-500 uppercase font-semibold">Objects</span>
+                <span id="objCount" class="text-sm font-mono font-bold text-slate-700">0 Lines</span>
+            </div>
+        </div>
+
+        <div class="absolute top-4 right-4 z-10 flex gap-2 pointer-events-none">
+             <button onclick="actions.undo()" class="pointer-events-auto bg-white hover:bg-gray-50 text-slate-700 p-2 rounded-lg shadow-sm border border-gray-200 transition-colors" title="撤销 (Ctrl+Z)">
+                <i class="fa fa-undo"></i>
+            </button>
+            <button onclick="actions.deleteSelection()" class="pointer-events-auto bg-white hover:bg-red-50 text-red-600 p-2 rounded-lg shadow-sm border border-gray-200 transition-colors" title="删除选中 (Del)">
+                <i class="fa fa-trash"></i>
+            </button>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="flex-1 bg-gray-100 relative canvas-container" id="canvasContainer">
+            <canvas id="mainCanvas" class="block outline-none w-full h-full"></canvas>
+            
+            <!-- Tooltip -->
+            <div id="tooltip" class="tooltip hidden">
+                <div class="font-bold mb-1 border-b border-gray-600 pb-1 text-gray-300 flex justify-between items-center gap-4">
+                    <span>ID: <span id="tooltipId" class="text-white"></span></span>
+                </div>
+                <!-- Dynamic Content Area -->
+                <div id="tooltipContent" class="mt-1 space-y-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Diagnosis Panel -->
+        <div class="h-48 bg-white border-t border-gray-200 flex shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 shrink-0">
+            <!-- Card 1 -->
+            <div class="flex-1 p-5 border-r border-gray-100 flex flex-col">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fa fa-heartbeat text-rose-500 text-lg"></i>
+                    <h3 class="font-bold text-slate-800">急救效率</h3>
+                </div>
+                <div class="flex-1 flex flex-col justify-center">
+                    <div class="flex items-baseline gap-2">
+                        <span id="emergencyDepth" class="text-3xl font-mono font-bold text-slate-800">-</span>
+                        <span class="text-sm text-gray-500">Steps</span>
+                    </div>
+                    <div id="emergencyStatus" class="mt-2 text-xs font-medium px-2 py-1 rounded w-fit bg-gray-100 text-gray-500">
+                        等待标记...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="flex-1 p-5 border-r border-gray-100 flex flex-col">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fa fa-lock text-amber-500 text-lg"></i>
+                    <h3 class="font-bold text-slate-800">ICU 隐私</h3>
+                </div>
+                 <div class="flex-1 flex flex-col justify-center">
+                    <div class="flex items-baseline gap-2">
+                        <span id="privacyValue" class="text-3xl font-mono font-bold text-slate-800">0.00</span>
+                        <span class="text-sm text-gray-500">R=3 Integration</span>
+                    </div>
+                    <p id="privacyMsg" class="text-xs text-gray-500 mt-2">等待标记...</p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="flex-1 p-5 flex flex-col">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fa fa-connectdevelop text-blue-500 text-lg"></i>
+                    <h3 class="font-bold text-slate-800">空间协同</h3>
+                </div>
+                <div class="flex-1">
+                    <div class="text-sm text-gray-600 mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-xs text-gray-400">分析模式</span>
+                            <span id="mainStreetStatus" class="text-xs font-bold text-gray-500">标准句法</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-400">高活轴线</span>
+                            <span id="highIntCount" class="text-xs font-mono font-bold">0</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div id="synergyBar" class="bg-blue-500 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心算法 (Space Syntax) ---
+        const SyntaxEngine = {
+            getIntersection: (l1, l2) => {
+                const det = (l1.x2 - l1.x1) * (l2.y2 - l2.y1) - (l2.x2 - l2.x1) * (l1.y2 - l1.y1);
+                if (det === 0) return null;
+                const lambda = ((l2.y2 - l2.y1) * (l2.x2 - l1.x1) + (l2.x1 - l2.x2) * (l2.y2 - l1.y1)) / det;
+                const gamma = ((l1.y1 - l1.y2) * (l2.x2 - l1.x1) + (l1.x2 - l1.x1) * (l2.y2 - l1.y1)) / det;
+                return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+            },
+
+            buildGraph: (lines) => {
+                const adjList = new Map();
+                lines.forEach(l => adjList.set(l.id, []));
+                for (let i = 0; i < lines.length; i++) {
+                    for (let j = i + 1; j < lines.length; j++) {
+                        if (SyntaxEngine.getIntersection(lines[i], lines[j])) {
+                            adjList.get(lines[i].id).push(lines[j].id);
+                            adjList.get(lines[j].id).push(lines[i].id);
+                        }
+                    }
+                }
+                return adjList;
+            },
+
+            bfs: (startIds, adjList, maxDepth = null) => {
+                const distances = new Map();
+                // Support multiple start points (roots)
+                const queue = [];
+                const roots = Array.isArray(startIds) ? startIds : [startIds];
+                
+                roots.forEach(id => {
+                    if (adjList.has(id)) {
+                        distances.set(id, 0);
+                        queue.push({ id, dist: 0 });
+                    }
+                });
+
+                let totalDepth = 0, nodeCount = 0;
+                while (queue.length > 0) {
+                    const { id, dist } = queue.shift();
+                    totalDepth += dist;
+                    nodeCount++;
+                    if (maxDepth !== null && dist >= maxDepth) continue;
+                    const neighbors = adjList.get(id) || [];
+                    for (const neighbor of neighbors) {
+                        if (!distances.has(neighbor)) {
+                            distances.set(neighbor, dist + 1);
+                            queue.push({ id: neighbor, dist: dist + 1 });
+                        }
+                    }
+                }
+                return { distances, totalDepth, nodeCount };
+            },
+
+            distPointToSegment: (p, s) => {
+                const A = p.x - s.x1, B = p.y - s.y1;
+                const C = s.x2 - s.x1, D = s.y2 - s.y1;
+                const dot = A * C + B * D;
+                const len_sq = C * C + D * D;
+                let param = -1;
+                if (len_sq !== 0) param = dot / len_sq;
+                let xx, yy;
+                if (param < 0) { xx = s.x1; yy = s.y1; }
+                else if (param > 1) { xx = s.x2; yy = s.y2; }
+                else { xx = s.x1 + param * C; yy = s.y1 + param * D; }
+                const dx = p.x - xx, dy = p.y - yy;
+                return Math.sqrt(dx * dx + dy * dy);
+            },
+            
+            // Helper to find line closest to a point
+            findClosestLineId: (point, lines) => {
+                let minD = Infinity;
+                let id = null;
+                lines.forEach(l => {
+                    const d = SyntaxEngine.distPointToSegment(point, l);
+                    if (d < minD) { minD = d; id = l.id; }
+                });
+                return id;
+            },
+
+            // --- 混合加权计算 ---
+            calculate: (lines, pois) => {
+                const adjList = SyntaxEngine.buildGraph(lines);
+                const results = {};
+                
+                // 1. Check for Entrances
+                const entrancePOIs = pois.filter(p => p.type === 'ENTRANCE');
+                const hasEntrance = entrancePOIs.length > 0;
+
+                // 2. Identify Entrance Roots (nearest lines)
+                let entranceLineIds = [];
+                if (hasEntrance) {
+                    entranceLineIds = entrancePOIs.map(ep => SyntaxEngine.findClosestLineId(ep, lines)).filter(id => id !== null);
+                }
+
+                // 3. Pre-calculate standard metrics for Tooltip/Diagnostics
+                let accessDepths = null;
+                if (hasEntrance && entranceLineIds.length > 0) {
+                     accessDepths = SyntaxEngine.bfs(entranceLineIds, adjList).distances;
+                }
+
+                let minScore = Infinity, maxScore = -Infinity;
+
+                lines.forEach(line => {
+                    // Standard Integration
+                    const global = SyntaxEngine.bfs(line.id, adjList, null);
+                    const local = SyntaxEngine.bfs(line.id, adjList, 3);
+                    const mdG = global.nodeCount > 1 ? global.totalDepth / (global.nodeCount - 1) : 0;
+                    const mdL = local.nodeCount > 1 ? local.totalDepth / (local.nodeCount - 1) : 0;
+                    
+                    const res = {
+                        globalRaw: mdG > 0 ? 1/mdG : 0,
+                        localRaw: mdL > 0 ? 1/mdL : 0,
+                        depths: global.distances,
+                        accessScore: 0
+                    };
+
+                    if (hasEntrance && accessDepths) {
+                        const topoDepth = accessDepths.get(line.id);
+                        
+                        if (topoDepth !== undefined) {
+                            let minGeoDist = Infinity;
+                            entrancePOIs.forEach(ep => {
+                                const d = SyntaxEngine.distPointToSegment(ep, line); 
+                                if (d < minGeoDist) minGeoDist = d;
+                            });
+                            
+                            const WEIGHT_TOPO = 150; 
+                            const cost = (topoDepth * WEIGHT_TOPO) + minGeoDist;
+                            res.accessScore = cost; 
+                        } else {
+                            res.accessScore = Infinity;
+                        }
+                    }
+
+                    results[line.id] = res;
+                    
+                    const val = hasEntrance ? (res.accessScore === Infinity ? null : -res.accessScore) : res.globalRaw;
+                    
+                    if (val !== null) {
+                        if (val > maxScore) maxScore = val;
+                        if (val < minScore) minScore = val;
+                    }
+                });
+
+                const range = maxScore - minScore;
+                lines.forEach(line => {
+                    const r = results[line.id];
+                    let val = hasEntrance ? (r.accessScore === Infinity ? null : -r.accessScore) : r.globalRaw;
+                    
+                    if (val === null) {
+                        r.norm = 0; 
+                    } else {
+                        r.norm = range === 0 ? 0.5 : (val - minScore) / range;
+                    }
+                });
+                
+                return { data: results, mode: hasEntrance ? 'ACCESS' : 'INTEGRATION' };
+            }
+        };
+
+        // --- 全局状态 ---
+        const state = {
+            projectName: "Hospital_01",
+            lines: [],
+            pois: [],
+            metricsResult: { data: {}, mode: 'INTEGRATION' },
+            
+            camera: { x: 0, y: 0, zoom: 1 },
+            mode: 'SELECT',
+            selectedIds: [],
+            hoverId: null,
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            dragType: null,
+            activeHandle: null,
+            currentLine: null,
+            boxSelectRect: null,
+            
+            history: [],
+            historyIndex: -1,
+            
+            bgImage: null, // Image Object
+            bgImageDataUrl: null, // Base64 for export
+            bgImageName: null,
+            
+            canvas: null,
+            ctx: null
+        };
+
+        // --- 历史记录系统 ---
+        const historyManager = {
+            push: () => {
+                if (state.historyIndex < state.history.length - 1) {
+                    state.history = state.history.slice(0, state.historyIndex + 1);
+                }
+                const snapshot = JSON.stringify({ lines: state.lines, pois: state.pois });
+                state.history.push(snapshot);
+                state.historyIndex++;
+                if (state.history.length > 20) {
+                    state.history.shift();
+                    state.historyIndex--;
+                }
+            },
+            undo: () => {
+                if (state.historyIndex > 0) {
+                    state.historyIndex--;
+                    const snapshot = JSON.parse(state.history[state.historyIndex]);
+                    state.lines = snapshot.lines;
+                    state.pois = snapshot.pois;
+                    state.selectedIds = [];
+                    actions.recalculate();
+                }
+            }
+        };
+
+        const transform = {
+            screenToWorld: (sx, sy) => ({
+                x: (sx - state.camera.x) / state.camera.zoom,
+                y: (sy - state.camera.y) / state.camera.zoom
+            }),
+            worldToScreen: (wx, wy) => ({
+                x: wx * state.camera.zoom + state.camera.x,
+                y: wy * state.camera.zoom + state.camera.y
+            })
+        };
+
+        // --- 初始化 ---
+        function init() {
+            state.canvas = document.getElementById('mainCanvas');
+            state.ctx = state.canvas.getContext('2d');
+            
+            state.lines = [
+                { id: 'l1', x1: 100, y1: 400, x2: 900, y2: 400 },
+                { id: 'l2', x1: 300, y1: 100, x2: 300, y2: 600 },
+                { id: 'l3', x1: 700, y1: 200, x2: 700, y2: 500 }
+            ];
+            historyManager.push();
+            
+            document.getElementById('projectTitle').innerText = state.projectName;
+            
+            resizeCanvas();
+            bindEvents();
+            actions.recalculate();
+            
+            const loop = () => {
+                render();
+                requestAnimationFrame(loop);
+            };
+            loop();
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            state.canvas.width = container.clientWidth;
+            state.canvas.height = container.clientHeight;
+            render();
+        }
+
+        function bindEvents() {
+            const c = state.canvas;
+            window.addEventListener('resize', resizeCanvas);
+            c.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            c.addEventListener('wheel', onWheel, { passive: false });
+            window.addEventListener('keydown', onKeyDown);
+        }
+
+        // --- 项目管理功能 ---
+
+        function handleRename() {
+            const newName = prompt("请输入新项目名称:", state.projectName);
+            if (newName && newName.trim() !== "") {
+                state.projectName = newName.trim();
+                document.getElementById('projectTitle').innerText = state.projectName;
+            }
+        }
+
+        async function handleExport() {
+            const btn = document.getElementById('exportBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa fa-circle-o-notch fa-spin"></i> 打包中...`;
+            btn.disabled = true;
+
+            try {
+                const zip = new JSZip();
+                
+                // 1. 构建 JSON Schema 数据
+                const projectData = {
+                    meta: {
+                        appName: "HSO Pro",
+                        version: "2.1.0",
+                        projectName: state.projectName,
+                        exportedAt: new Date().toISOString()
+                    },
+                    geometry: {
+                        lines: state.lines,
+                        pois: state.pois
+                    },
+                    view: {
+                        camera: state.camera,
+                        canvasSize: { width: state.canvas.width, height: state.canvas.height }
+                    },
+                    analysis: {
+                        mode: state.metricsResult.mode,
+                        metrics: state.metricsResult.data // 包含计算结果，方便直接读取
+                    },
+                    resources: {
+                        bgImage: state.bgImageName || null
+                    }
+                };
+
+                // 添加 JSON 文件
+                zip.file(`${state.projectName}_data.json`, JSON.stringify(projectData, null, 2));
+
+                // 2. 添加底图 (如果有)
+                if (state.bgImageDataUrl) {
+                    // 去掉 data:image/png;base64, 前缀
+                    const base64Data = state.bgImageDataUrl.split(',')[1];
+                    const fileName = state.bgImageName || "background.png";
+                    zip.file(fileName, base64Data, {base64: true});
+                }
+
+                // 3. 生成并下载
+                const content = await zip.generateAsync({type: "blob"});
+                saveAs(content, `${state.projectName}.zip`);
+
+            } catch (err) {
+                console.error("Export failed", err);
+                alert("导出失败: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        state.bgImage = img;
+                        state.bgImageDataUrl = event.target.result; // 保存 Base64 用于导出
+                        state.bgImageName = file.name;
+                        
+                        state.camera.x = (state.canvas.width - img.width)/2;
+                        state.camera.y = (state.canvas.height - img.height)/2;
+                        render();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- 交互事件 ---
+        function onMouseDown(e) {
+            e.preventDefault();
+            const { offsetX, offsetY, button } = e;
+            const worldPos = transform.screenToWorld(offsetX, offsetY);
+            
+            if (button === 1 || (button === 0 && e.code === 'Space')) {
+                state.isDragging = true;
+                state.dragType = 'PAN';
+                state.dragStart = { x: offsetX, y: offsetY };
+                state.canvas.classList.add('cursor-panning');
+                return;
+            }
+
+            if (button === 0) {
+                state.dragStart = { x: worldPos.x, y: worldPos.y };
+                state.isDragging = true;
+
+                if (state.mode === 'DRAW') {
+                    state.currentLine = { x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y };
+                    return;
+                }
+
+                if (state.mode.startsWith('POI')) {
+                    const type = state.mode.split('_')[1];
+                    const poi = { id: `p_${Date.now()}`, x: worldPos.x, y: worldPos.y, type };
+                    state.pois.push(poi);
+                    historyManager.push();
+                    state.mode = 'SELECT';
+                    updateUI();
+                    actions.recalculate();
+                    return;
+                }
+
+                if (state.mode === 'SELECT') {
+                    if (state.selectedIds.length === 1) {
+                        const l = state.lines.find(l => l.id === state.selectedIds[0]);
+                        if (l) {
+                            const HIT_RADIUS = 10 / state.camera.zoom;
+                            if (Math.hypot(l.x1 - worldPos.x, l.y1 - worldPos.y) < HIT_RADIUS) {
+                                state.dragType = 'EDIT_NODE';
+                                state.activeHandle = 'start';
+                                return;
+                            }
+                            if (Math.hypot(l.x2 - worldPos.x, l.y2 - worldPos.y) < HIT_RADIUS) {
+                                state.dragType = 'EDIT_NODE';
+                                state.activeHandle = 'end';
+                                return;
+                            }
+                        }
+                    }
+
+                    const hit = hitTest(worldPos);
+                    if (hit) {
+                        state.dragType = 'MOVE';
+                        if (e.ctrlKey || e.shiftKey) {
+                            if (state.selectedIds.includes(hit.id)) {
+                                state.selectedIds = state.selectedIds.filter(id => id !== hit.id);
+                            } else {
+                                state.selectedIds.push(hit.id);
+                            }
+                        } else {
+                            if (!state.selectedIds.includes(hit.id)) {
+                                state.selectedIds = [hit.id];
+                            }
+                        }
+                    } else {
+                        state.dragType = 'BOX';
+                        state.boxSelectRect = { x: worldPos.x, y: worldPos.y, w: 0, h: 0 };
+                        if (!e.ctrlKey && !e.shiftKey) state.selectedIds = [];
+                    }
+                }
+            }
+        }
+
+        function onMouseMove(e) {
+            const rect = state.canvas.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+            const worldPos = transform.screenToWorld(offsetX, offsetY);
+
+            if (!state.isDragging) {
+                const hit = hitTest(worldPos);
+                state.hoverId = hit ? hit.id : null;
+                const metrics = state.metricsResult.data;
+                if (hit && metrics[hit.id]) {
+                    showTooltip(e.clientX, e.clientY, hit.id, metrics[hit.id], state.metricsResult.mode);
+                } else {
+                    hideTooltip();
+                }
+                return;
+            }
+
+            if (state.dragType === 'PAN') {
+                const dx = offsetX - state.dragStart.x;
+                const dy = offsetY - state.dragStart.y;
+                state.camera.x += dx;
+                state.camera.y += dy;
+                state.dragStart = { x: offsetX, y: offsetY };
+            } 
+            else if (state.mode === 'DRAW' && state.currentLine) {
+                state.currentLine.x2 = worldPos.x;
+                state.currentLine.y2 = worldPos.y;
+            }
+            else if (state.dragType === 'MOVE') {
+                const dx = worldPos.x - state.dragStart.x;
+                const dy = worldPos.y - state.dragStart.y;
+                state.selectedIds.forEach(id => {
+                    const l = state.lines.find(x => x.id === id);
+                    if (l) { l.x1 += dx; l.y1 += dy; l.x2 += dx; l.y2 += dy; }
+                    const p = state.pois.find(x => x.id === id);
+                    if (p) { p.x += dx; p.y += dy; }
+                });
+                state.dragStart = { x: worldPos.x, y: worldPos.y };
+                actions.recalculate();
+            }
+            else if (state.dragType === 'EDIT_NODE') {
+                const l = state.lines.find(x => x.id === state.selectedIds[0]);
+                if (l) {
+                    if (state.activeHandle === 'start') { l.x1 = worldPos.x; l.y1 = worldPos.y; }
+                    else { l.x2 = worldPos.x; l.y2 = worldPos.y; }
+                    actions.recalculate();
+                }
+            }
+            else if (state.dragType === 'BOX') {
+                state.boxSelectRect.w = worldPos.x - state.boxSelectRect.x;
+                state.boxSelectRect.h = worldPos.y - state.boxSelectRect.y;
+                const bx = Math.min(state.boxSelectRect.x, state.boxSelectRect.x + state.boxSelectRect.w);
+                const by = Math.min(state.boxSelectRect.y, state.boxSelectRect.y + state.boxSelectRect.h);
+                const bw = Math.abs(state.boxSelectRect.w);
+                const bh = Math.abs(state.boxSelectRect.h);
+                const newSelection = [];
+                state.lines.forEach(l => {
+                    const mx = (l.x1 + l.x2)/2, my = (l.y1 + l.y2)/2;
+                    if (mx >= bx && mx <= bx+bw && my >= by && my <= by+bh) newSelection.push(l.id);
+                });
+                state.pois.forEach(p => {
+                    if (p.x >= bx && p.x <= bx+bw && p.y >= by && p.y <= by+bh) newSelection.push(p.id);
+                });
+                state.selectedIds = newSelection;
+            }
+        }
+
+        function onMouseUp(e) {
+            if (!state.isDragging) return;
+            if (state.mode === 'DRAW' && state.currentLine) {
+                const len = Math.hypot(state.currentLine.x2 - state.currentLine.x1, state.currentLine.y2 - state.currentLine.y1);
+                if (len > 5) {
+                    state.currentLine.id = `l_${Date.now()}`;
+                    state.lines.push(state.currentLine);
+                    historyManager.push();
+                    actions.recalculate();
+                }
+                state.currentLine = null;
+            }
+            else if (['MOVE', 'EDIT_NODE'].includes(state.dragType)) {
+                historyManager.push();
+            }
+            state.isDragging = false;
+            state.dragType = null;
+            state.activeHandle = null;
+            state.boxSelectRect = null;
+            state.canvas.classList.remove('cursor-panning');
+        }
+
+        function onWheel(e) {
+            e.preventDefault();
+            const zoomSensitivity = 0.001;
+            const delta = -e.deltaY * zoomSensitivity;
+            const rect = state.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const worldMouse = transform.screenToWorld(mouseX, mouseY);
+            let newZoom = state.camera.zoom * (delta > 0 ? 1.1 : 0.9);
+            newZoom = Math.max(0.1, Math.min(10, newZoom));
+            state.camera.x = mouseX - worldMouse.x * newZoom;
+            state.camera.y = mouseY - worldMouse.y * newZoom;
+            state.camera.zoom = newZoom;
+            document.getElementById('zoomLevel').innerText = Math.round(newZoom * 100) + '%';
+        }
+
+        function onKeyDown(e) {
+            if (e.key === 'Delete' || e.key === 'Backspace') actions.deleteSelection();
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) actions.undo();
+            if (e.key === 'v') setMode('SELECT');
+            if (e.key === 'p') setMode('DRAW');
+        }
+
+        function hitTest(pos) {
+            const HIT_DIST = 8 / state.camera.zoom;
+            for (let i = state.pois.length - 1; i >= 0; i--) {
+                const p = state.pois[i];
+                if (Math.hypot(p.x - pos.x, p.y - pos.y) < HIT_DIST * 1.5) return p;
+            }
+            for (let i = state.lines.length - 1; i >= 0; i--) {
+                const l = state.lines[i];
+                if (SyntaxEngine.distPointToSegment(pos, l) < HIT_DIST) return l;
+            }
+            return null;
+        }
+
+        function render() {
+            const { ctx, canvas, camera, lines, pois, selectedIds } = state;
+            const metrics = state.metricsResult.data;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(camera.x, camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            
+            if (state.bgImage) {
+                ctx.drawImage(state.bgImage, 0, 0); 
+            } else {
+                drawGrid(ctx, canvas, camera);
+            }
+
+            // Draw Lines
+            lines.forEach(l => {
+                const isSelected = selectedIds.includes(l.id);
+                const isHover = state.hoverId === l.id;
+                const m = metrics[l.id];
+                
+                ctx.lineCap = 'round';
+                
+                if (isSelected || isHover) {
+                    ctx.beginPath();
+                    ctx.moveTo(l.x1, l.y1);
+                    ctx.lineTo(l.x2, l.y2);
+                    ctx.lineWidth = 12 / camera.zoom;
+                    ctx.strokeStyle = isSelected ? 'rgba(250, 204, 21, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+                    ctx.stroke();
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(l.x1, l.y1);
+                ctx.lineTo(l.x2, l.y2);
+                ctx.lineWidth = 6 / camera.zoom;
+                
+                if (m) {
+                    const hue = (1 - m.norm) * 240;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.strokeStyle = '#94a3b8';
+                }
+                ctx.stroke();
+
+                if (isSelected && selectedIds.length === 1) {
+                    drawHandle(ctx, l.x1, l.y1, camera.zoom);
+                    drawHandle(ctx, l.x2, l.y2, camera.zoom);
+                }
+            });
+
+            if (state.currentLine) {
+                const l = state.currentLine;
+                ctx.beginPath();
+                ctx.moveTo(l.x1, l.y1);
+                ctx.lineTo(l.x2, l.y2);
+                ctx.lineWidth = 2 / camera.zoom;
+                ctx.strokeStyle = '#3b82f6';
+                ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            pois.forEach(p => {
+                const isSelected = selectedIds.includes(p.id);
+                const radius = (isSelected ? 10 : 8) / camera.zoom;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                
+                let color = '#64748b';
+                let label = '';
+                if (p.type === 'EMERGENCY') { color = '#ef4444'; label = 'E'; }
+                else if (p.type === 'SURGERY') { color = '#3b82f6'; label = 'S'; }
+                else if (p.type === 'ICU') { color = '#a855f7'; label = 'I'; }
+                else if (p.type === 'WARD') { color = '#10b981'; label = 'W'; }
+                else if (p.type === 'ENTRANCE') { color = '#b45309'; label = 'In'; } 
+
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                if (isSelected) {
+                    ctx.lineWidth = 3 / camera.zoom;
+                    ctx.strokeStyle = '#facc15';
+                    ctx.stroke();
+                } else {
+                    ctx.lineWidth = 1.5 / camera.zoom;
+                    ctx.strokeStyle = '#fff';
+                    ctx.stroke();
+                }
+                
+                // Draw Label
+                ctx.fillStyle = 'white';
+                ctx.font = `${8/camera.zoom}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, p.x, p.y);
+            });
+
+            if (state.dragType === 'BOX' && state.boxSelectRect) {
+                const r = state.boxSelectRect;
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 1 / camera.zoom;
+                ctx.fillRect(r.x, r.y, r.w, r.h);
+                ctx.strokeRect(r.x, r.y, r.w, r.h);
+            }
+
+            ctx.restore();
+        }
+
+        function drawGrid(ctx, canvas, camera) {
+            const step = 100;
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1 / camera.zoom;
+            const left = -camera.x / camera.zoom;
+            const top = -camera.y / camera.zoom;
+            const right = left + canvas.width / camera.zoom;
+            const bottom = top + canvas.height / camera.zoom;
+            const startX = Math.floor(left / step) * step;
+            const startY = Math.floor(top / step) * step;
+
+            ctx.beginPath();
+            for (let x = startX; x < right; x += step) { ctx.moveTo(x, top); ctx.lineTo(x, bottom); }
+            for (let y = startY; y < bottom; y += step) { ctx.moveTo(left, y); ctx.lineTo(right, y); }
+            ctx.stroke();
+        }
+
+        function drawHandle(ctx, x, y, zoom) {
+            const size = 6 / zoom;
+            ctx.fillStyle = '#fff';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1 / zoom;
+            ctx.beginPath();
+            ctx.rect(x - size/2, y - size/2, size, size);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        const actions = {
+            recalculate: () => {
+                state.metricsResult = SyntaxEngine.calculate(state.lines, state.pois);
+                document.getElementById('objCount').innerText = `${state.lines.length} Lines`;
+                updateDiagnostics();
+                updateUI();
+            },
+            deleteSelection: () => {
+                if (state.selectedIds.length === 0) return;
+                state.lines = state.lines.filter(l => !state.selectedIds.includes(l.id));
+                state.pois = state.pois.filter(p => !state.selectedIds.includes(p.id));
+                state.selectedIds = [];
+                historyManager.push();
+                actions.recalculate();
+            },
+            undo: historyManager.undo
+        };
+
+        function setMode(mode) {
+            state.mode = mode;
+            updateUI();
+        }
+
+        function updateUI() {
+            // Update Tool Selectors
+            const map = { 'SELECT': 'selectBtn', 'DRAW': 'drawBtn' };
+            ['SELECT', 'DRAW'].forEach(m => {
+                const el = document.getElementById(map[m]);
+                if (m === state.mode) {
+                    el.classList.add('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200');
+                    el.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                } else {
+                    el.classList.remove('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200');
+                    el.classList.add('bg-gray-100', 'hover:bg-gray-200');
+                }
+            });
+
+            // Update POI buttons
+            document.querySelectorAll('.poi-btn').forEach(b => {
+                const btnType = 'POI_' + b.id.replace('Btn', '').toUpperCase();
+                if (state.mode === btnType) {
+                    b.classList.add('ring-2', 'ring-offset-1', 'bg-gray-100');
+                } else {
+                    b.classList.remove('ring-2', 'ring-offset-1', 'bg-gray-100');
+                }
+            });
+            
+            // Update Legend Title based on Mode
+            const isAccessMode = state.metricsResult.mode === 'ACCESS';
+            document.getElementById('analysisMode').innerText = isAccessMode ? "Hybrid Access" : "Global Int";
+            document.getElementById('analysisMode').className = isAccessMode 
+                ? "text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-bold"
+                : "text-[10px] bg-blue-50 text-blue-700 px-1 rounded font-bold";
+                
+            document.getElementById('legendLow').innerText = isAccessMode ? "Low / Far" : "Low / Deep";
+            document.getElementById('legendHigh').innerText = isAccessMode ? "High / Close" : "High / Shallow";
+
+            if (state.mode === 'DRAW') state.canvas.className = 'cursor-draw';
+            else if (state.mode === 'SELECT') state.canvas.className = 'cursor-select';
+        }
+
+        function showTooltip(x, y, id, metric, mode) {
+            const el = document.getElementById('tooltip');
+            el.classList.remove('hidden');
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.getElementById('tooltipId').innerText = id;
+            
+            const content = document.getElementById('tooltipContent');
+            if (mode === 'ACCESS') {
+                content.innerHTML = `
+                    <div class="flex justify-between gap-4"><span>Score:</span> <span class="text-amber-400 font-mono font-bold">${metric.accessScore.toFixed(0)}</span></div>
+                    <div class="text-[10px] text-gray-400 mt-1">Weighted Dist + Depth</div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="flex justify-between gap-4"><span>Global (R=n):</span> <span class="text-yellow-400 font-mono font-bold">${metric.globalRaw.toFixed(2)}</span></div>
+                    <div class="flex justify-between gap-4"><span>Local (R=3):</span> <span class="text-green-400 font-mono font-bold">${metric.localRaw.toFixed(2)}</span></div>
+                `;
+            }
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.add('hidden');
+        }
+
+        function updateDiagnostics() {
+            const metrics = state.metricsResult.data;
+            const report = { depth: '-' };
+            
+            // 1. Emergency
+            const ePoi = state.pois.find(p => p.type === 'EMERGENCY');
+            const sPoi = state.pois.find(p => p.type === 'SURGERY');
+            
+            if (ePoi && sPoi) {
+                const findClosest = (p) => {
+                    let minD = Infinity, res = null;
+                    state.lines.forEach(l => {
+                        const d = SyntaxEngine.distPointToSegment(p, l);
+                        if (d < minD) { minD = d; res = l; }
+                    });
+                    return res;
+                };
+                const lStart = findClosest(ePoi);
+                const lEnd = findClosest(sPoi);
+                
+                if (lStart && lEnd && metrics[lStart.id]) {
+                    const d = metrics[lStart.id].depths.get(lEnd.id);
+                    report.depth = d !== undefined ? d : '断连';
+                    
+                    const statusEl = document.getElementById('emergencyStatus');
+                    if (d <= 3) {
+                        statusEl.className = "mt-2 text-xs font-medium px-2 py-1 rounded w-fit bg-green-100 text-green-700";
+                        statusEl.innerText = "优秀 (高效)";
+                    } else if (d > 3) {
+                        statusEl.className = "mt-2 text-xs font-medium px-2 py-1 rounded w-fit bg-red-100 text-red-700";
+                        statusEl.innerText = "警告 (路径过长)";
+                    } else {
+                        statusEl.className = "mt-2 text-xs font-medium px-2 py-1 rounded w-fit bg-orange-100 text-orange-700";
+                        statusEl.innerText = "路径不通";
+                    }
+                }
+            }
+            document.getElementById('emergencyDepth').innerText = report.depth;
+
+            // 2. ICU
+            const iPoi = state.pois.find(p => p.type === 'ICU');
+            if (iPoi) {
+                let minD = Infinity, res = null;
+                state.lines.forEach(l => {
+                    const d = SyntaxEngine.distPointToSegment(iPoi, l);
+                    if (d < minD) { minD = d; res = l; }
+                });
+                if (res && metrics[res.id]) {
+                    const val = metrics[res.id].localRaw;
+                    document.getElementById('privacyValue').innerText = val.toFixed(2);
+                    const msgEl = document.getElementById('privacyMsg');
+                    if (val > 0.8) { 
+                         msgEl.innerText = "警告：位于高人流区";
+                         msgEl.className = "text-xs mt-2 font-bold text-red-500";
+                    } else {
+                         msgEl.innerText = "位置良好 (安静)";
+                         msgEl.className = "text-xs mt-2 text-green-500";
+                    }
+                }
+            }
+
+            // 3. Synergy
+            const total = state.lines.length;
+            const high = Object.values(metrics).filter(m => m.norm > 0.75).length;
+            document.getElementById('highIntCount').innerText = high;
+            document.getElementById('mainStreetStatus').innerText = high > 0 ? "已形成" : "未形成";
+            document.getElementById('synergyBar').style.width = total > 0 ? `${(high/total)*100}%` : '0%';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
