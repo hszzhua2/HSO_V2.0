@@ -1,952 +1,952 @@
 <!DOCTYPE html>
 <html lang="zh-CN" class="transition-colors duration-300">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSO - 医院空间句法优化器 Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        glass: {
-                            light: 'rgba(255, 255, 255, 0.65)',
-                            dark: 'rgba(15, 23, 42, 0.65)',
-                            border: 'rgba(255, 255, 255, 0.2)',
-                            borderDark: 'rgba(255, 255, 255, 0.05)',
-                        }
-                    },
-                    backdropBlur: {
-                        xs: '2px',
-                    },
-                    animation: {
-                        'blob': 'blob 10s infinite',
-                    },
-                    keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        body { font-family: 'Inter', sans-serif; overflow: hidden; user-select: none; }
-        
-        /* Liquid Background Layers */
-        .liquid-bg {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -2;
-            overflow: hidden;
-            background: #f0f4f8;
-            transition: background 0.5s ease;
-        }
-        .dark .liquid-bg {
-            background: #0f172a;
-        }
-        
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.6;
-            animation: blob 15s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .dark .blob { opacity: 0.4; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSO - 医院空间句法优化器 Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        glass: {
+                            light: 'rgba(255, 255, 255, 0.65)',
+                            dark: 'rgba(15, 23, 42, 0.65)',
+                            border: 'rgba(255, 255, 255, 0.2)',
+                            borderDark: 'rgba(255, 255, 255, 0.05)',
+                        }
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    },
+                    animation: {
+                        'blob': 'blob 10s infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; overflow: hidden; user-select: none; }
+        
+        /* Liquid Background Layers */
+        .liquid-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2;
+            overflow: hidden;
+            background: #f0f4f8;
+            transition: background 0.5s ease;
+        }
+        .dark .liquid-bg {
+            background: #0f172a;
+        }
+        
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: blob 15s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark .blob { opacity: 0.4; }
 
-        /* Glassmorphism Utilities */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        .dark .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            color: #e2e8f0;
-        }
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
+        }
 
-        .glass-btn {
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease;
-        }
-        .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.9);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .glass-btn:active { transform: translateY(0); }
-        
-        .dark .glass-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            color: #cbd5e1;
-        }
-        .dark .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .glass-btn:active { transform: translateY(0); }
+        
+        .dark .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+        }
+        .dark .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
 
-        /* Active State for Buttons */
-        .glass-btn.active {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: rgba(59, 130, 246, 0.5);
-            color: #2563eb;
-        }
-        .dark .glass-btn.active {
-            background: rgba(59, 130, 246, 0.3);
-            border-color: rgba(59, 130, 246, 0.6);
-            color: #60a5fa;
-        }
+        /* Active State for Buttons */
+        .glass-btn.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.5);
+            color: #2563eb;
+        }
+        .dark .glass-btn.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.6);
+            color: #60a5fa;
+        }
 
-        /* Canvas */
-        .canvas-container { 
-            position: relative; overflow: hidden; 
-            /* Transparent to show liquid background, or slight tint */
-            background: rgba(255,255,255,0.2); 
-        }
-        .dark .canvas-container {
-            background: rgba(0,0,0,0.2);
-        }
-        
-        .cursor-pan { cursor: grab; }
-        .cursor-panning { cursor: grabbing; }
-        .cursor-draw { cursor: crosshair; }
-        .cursor-select { cursor: default; }
-        
-        /* Tooltip */
-        .glass-tooltip {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-        .dark .glass-tooltip {
-            background: rgba(0, 0, 0, 0.85);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+        /* Canvas */
+        .canvas-container { 
+            position: relative; overflow: hidden; 
+            /* Transparent to show liquid background, or slight tint */
+            background: rgba(255,255,255,0.2); 
+        }
+        .dark .canvas-container {
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .cursor-pan { cursor: grab; }
+        .cursor-panning { cursor: grabbing; }
+        .cursor-draw { cursor: crosshair; }
+        .cursor-select { cursor: default; }
+        
+        /* Tooltip */
+        .glass-tooltip {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .dark .glass-tooltip {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
 
-        /* Spectrum */
-        .bg-gradient-spectrum {
-            background: linear-gradient(to right, 
-                hsl(240, 100%, 50%), hsl(200, 100%, 50%), hsl(120, 100%, 50%), 
-                hsl(60, 100%, 50%), hsl(30, 100%, 50%), hsl(0, 100%, 50%)
-            );
-        }
-        
-        /* Scrollbar */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+        /* Spectrum */
+        .bg-gradient-spectrum {
+            background: linear-gradient(to right, 
+                hsl(240, 100%, 50%), hsl(200, 100%, 50%), hsl(120, 100%, 50%), 
+                hsl(60, 100%, 50%), hsl(30, 100%, 50%), hsl(0, 100%, 50%)
+            );
+        }
+        
+        /* Scrollbar */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="h-screen flex overflow-hidden transition-colors duration-500">
-    
-    <!-- Liquid Background Animation -->
-    <div class="liquid-bg">
-        <div class="blob bg-blue-300 dark:bg-blue-900 w-96 h-96 top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
-        <div class="blob bg-purple-300 dark:bg-purple-900 w-96 h-96 bottom-0 right-0 translate-x-1/3 translate-y-1/3 animation-delay-2000"></div>
-        <div class="blob bg-emerald-300 dark:bg-emerald-900 w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animation-delay-4000"></div>
-    </div>
+    
+    <!-- Liquid Background Animation -->
+    <div class="liquid-bg">
+        <div class="blob bg-blue-300 dark:bg-blue-900 w-96 h-96 top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="blob bg-purple-300 dark:bg-purple-900 w-96 h-96 bottom-0 right-0 translate-x-1/3 translate-y-1/3 animation-delay-2000"></div>
+        <div class="blob bg-emerald-300 dark:bg-emerald-900 w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animation-delay-4000"></div>
+    </div>
 
-    <!-- Sidebar Tools -->
-    <div class="w-72 p-4 flex flex-col z-20 shrink-0 h-full">
-        <div class="glass-panel w-full h-full rounded-2xl flex flex-col overflow-hidden">
-            <!-- Header -->
-            <div class="p-5 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-start">
-                <div>
-                    <h1 class="text-lg font-bold flex items-center gap-2 group cursor-pointer transition-colors" onclick="handleRename()" title="重命名">
-                        <i class="fa fa-cubes text-blue-600 dark:text-blue-400"></i>
-                        <span id="projectTitle">HSO Project</span>
-                        <i class="fa fa-pencil opacity-0 group-hover:opacity-100 text-xs text-gray-400 ml-1 transition-opacity"></i>
-                    </h1>
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Hospital Syntax Optimizer</p>
-                </div>
-                
-                <!-- Theme Toggle -->
-                <button id="themeToggle" onclick="toggleTheme()" class="glass-btn w-8 h-8 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300">
-                    <i class="fa fa-adjust"></i>
-                </button>
-            </div>
+    <!-- Sidebar Tools -->
+    <div class="w-72 p-4 flex flex-col z-20 shrink-0 h-full">
+        <div class="glass-panel w-full h-full rounded-2xl flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-start">
+                <div>
+                    <h1 class="text-lg font-bold flex items-center gap-2 group cursor-pointer transition-colors" onclick="handleRename()" title="重命名">
+                        <i class="fa fa-cubes text-blue-600 dark:text-blue-400"></i>
+                        <span id="projectTitle">HSO Project</span>
+                        <i class="fa fa-pencil opacity-0 group-hover:opacity-100 text-xs text-gray-400 ml-1 transition-opacity"></i>
+                    </h1>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Hospital Syntax Optimizer</p>
+                </div>
+                
+                <!-- Theme Toggle -->
+                <button id="themeToggle" onclick="toggleTheme()" class="glass-btn w-8 h-8 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300">
+                    <i class="fa fa-adjust"></i>
+                </button>
+            </div>
 
-            <div class="p-5 space-y-6 flex-1 overflow-y-auto scrollbar-hide">
-                
-                <!-- Project Actions -->
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Project</label>
-                    <div class="flex gap-2">
-                        <button id="importBtn" onclick="handleImportClick()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium">
-                            <i class="fa fa-folder-open text-blue-500"></i>
-                            导入
-                        </button>
-                        <button id="exportBtn" onclick="handleExport()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium">
-                            <i class="fa fa-download text-emerald-500"></i>
-                            导出
-                        </button>
-                    </div>
-                    <input type="file" id="importInput" accept=".zip" onchange="handleImportFile(event)" class="hidden">
-                </div>
+            <div class="p-5 space-y-6 flex-1 overflow-y-auto scrollbar-hide">
+                
+                <!-- Project Actions -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Project</label>
+                    <div class="flex gap-2">
+                        <button id="importBtn" onclick="handleImportClick()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium">
+                            <i class="fa fa-folder-open text-blue-500"></i>
+                            导入
+                        </button>
+                        <button id="exportBtn" onclick="handleExport()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium">
+                            <i class="fa fa-download text-emerald-500"></i>
+                            导出
+                        </button>
+                    </div>
+                    <input type="file" id="importInput" accept=".zip" onchange="handleImportFile(event)" class="hidden">
+                </div>
 
-                <!-- Tools -->
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Tools</label>
-                    <div class="flex gap-2">
-                        <button id="selectBtn" onclick="setMode('SELECT')" class="glass-btn flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all" title="选择 (V)">
-                            <i class="fa fa-mouse-pointer text-base mb-1"></i>
-                            <span class="text-[10px]">Select</span>
-                        </button>
-                        <button id="drawBtn" onclick="setMode('DRAW')" class="glass-btn flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all" title="绘制 (P)">
-                            <i class="fa fa-pencil text-base mb-1"></i>
-                            <span class="text-[10px]">Draw</span>
-                        </button>
-                    </div>
-                </div>
+                <!-- Tools -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Tools</label>
+                    <div class="flex gap-2">
+                        <button id="selectBtn" onclick="setMode('SELECT')" class="glass-btn flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all" title="选择 (V)">
+                            <i class="fa fa-mouse-pointer text-base mb-1"></i>
+                            <span class="text-[10px]">Select</span>
+                        </button>
+                        <button id="drawBtn" onclick="setMode('DRAW')" class="glass-btn flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all" title="绘制 (P)">
+                            <i class="fa fa-pencil text-base mb-1"></i>
+                            <span class="text-[10px]">Draw</span>
+                        </button>
+                    </div>
+                </div>
 
-                <!-- Layer: Background -->
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Layer</label>
-                    <div class="relative group">
-                        <button id="uploadBtn" class="glass-btn w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-dashed text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                            <i class="fa fa-image"></i>
-                            上传底图
-                        </button>
-                        <input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer">
-                    </div>
-                </div>
+                <!-- Layer: Background -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Layer</label>
+                    <div class="relative group">
+                        <button id="uploadBtn" class="glass-btn w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-dashed text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                            <i class="fa fa-image"></i>
+                            上传底图
+                        </button>
+                        <input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                    </div>
+                </div>
 
-                <!-- POIs -->
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Markers</label>
-                    <button id="entranceBtn" onclick="setMode('POI_ENTRANCE')" class="glass-btn w-full mb-2 flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/30">
-                        <i class="fa fa-sign-in"></i>
-                        添加出入口 (In)
-                    </button>
+                <!-- POIs -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Markers</label>
+                    <button id="entranceBtn" onclick="setMode('POI_ENTRANCE')" class="glass-btn w-full mb-2 flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/30">
+                        <i class="fa fa-sign-in"></i>
+                        添加出入口 (In)
+                    </button>
 
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="emergencyBtn" onclick="setMode('POI_EMERGENCY')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
-                            <div class="w-2.5 h-2.5 rounded-full bg-red-500 mb-2 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                            急诊
-                        </button>
-                        <button id="surgeryBtn" onclick="setMode('POI_SURGERY')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
-                            <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mb-2 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                            手术
-                        </button>
-                        <button id="icuBtn" onclick="setMode('POI_ICU')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
-                            <div class="w-2.5 h-2.5 rounded-full bg-purple-500 mb-2 shadow-[0_0_8px_rgba(168,85,247,0.6)]"></div>
-                            ICU
-                        </button>
-                        <button id="wardBtn" onclick="setMode('POI_WARD')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
-                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mb-2 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-                            护士站
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Legend Footer -->
-            <div class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-black/20">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-2 flex justify-between items-center">
-                    <span class="font-bold">HEATMAP</span>
-                    <span id="analysisMode" class="text-[9px] bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-300">Global</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-gradient-spectrum shadow-inner opacity-90 mb-1"></div>
-                <div class="flex justify-between text-[9px] text-gray-400 font-medium">
-                    <span id="legendLow">Deep</span>
-                    <span id="legendHigh">Shallow</span>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="emergencyBtn" onclick="setMode('POI_EMERGENCY')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500 mb-2 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                            急诊
+                        </button>
+                        <button id="surgeryBtn" onclick="setMode('POI_SURGERY')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
+                            <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mb-2 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                            手术
+                        </button>
+                        <button id="icuBtn" onclick="setMode('POI_ICU')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
+                            <div class="w-2.5 h-2.5 rounded-full bg-purple-500 mb-2 shadow-[0_0_8px_rgba(168,85,247,0.6)]"></div>
+                            ICU
+                        </button>
+                        <button id="wardBtn" onclick="setMode('POI_WARD')" class="glass-btn flex flex-col items-center justify-center p-3 rounded-xl text-xs">
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mb-2 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                            护士站
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend Footer -->
+            <div class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-black/20">
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-2 flex justify-between items-center">
+                    <span class="font-bold">HEATMAP</span>
+                    <span id="analysisMode" class="text-[9px] bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-300">Global</span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-gradient-spectrum shadow-inner opacity-90 mb-1"></div>
+                <div class="flex justify-between text-[9px] text-gray-400 font-medium">
+                    <span id="legendLow">Deep</span>
+                    <span id="legendHigh">Shallow</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Main Workspace -->
-    <div class="flex-1 flex flex-col h-full relative p-4 pl-0">
-        
-        <!-- Top Overlay -->
-        <div class="absolute top-6 left-6 z-10 pointer-events-none flex gap-3">
-            <div class="glass-panel rounded-xl px-4 py-2 flex flex-col pointer-events-auto shadow-sm">
-                <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Zoom</span>
-                <span id="zoomLevel" class="text-sm font-mono font-bold text-slate-700 dark:text-slate-200">100%</span>
-            </div>
-             <div class="glass-panel rounded-xl px-4 py-2 flex flex-col pointer-events-auto shadow-sm">
-                <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Objects</span>
-                <span id="objCount" class="text-sm font-mono font-bold text-slate-700 dark:text-slate-200">0</span>
-            </div>
-        </div>
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col h-full relative p-4 pl-0">
+        
+        <!-- Top Overlay -->
+        <div class="absolute top-6 left-6 z-10 pointer-events-none flex gap-3">
+            <div class="glass-panel rounded-xl px-4 py-2 flex flex-col pointer-events-auto shadow-sm">
+                <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Zoom</span>
+                <span id="zoomLevel" class="text-sm font-mono font-bold text-slate-700 dark:text-slate-200">100%</span>
+            </div>
+             <div class="glass-panel rounded-xl px-4 py-2 flex flex-col pointer-events-auto shadow-sm">
+                <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Objects</span>
+                <span id="objCount" class="text-sm font-mono font-bold text-slate-700 dark:text-slate-200">0</span>
+            </div>
+        </div>
 
-        <div class="absolute top-6 right-6 z-10 flex gap-3 pointer-events-none">
-             <button onclick="actions.undo()" class="pointer-events-auto glass-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 shadow-sm" title="Undo (Ctrl+Z)">
-                <i class="fa fa-undo"></i>
-            </button>
-            <button onclick="actions.deleteSelection()" class="pointer-events-auto glass-btn w-10 h-10 flex items-center justify-center rounded-xl text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm" title="Delete (Del)">
-                <i class="fa fa-trash"></i>
-            </button>
-        </div>
+        <div class="absolute top-6 right-6 z-10 flex gap-3 pointer-events-none">
+             <button onclick="actions.undo()" class="pointer-events-auto glass-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 shadow-sm" title="Undo (Ctrl+Z)">
+                <i class="fa fa-undo"></i>
+            </button>
+            <button onclick="actions.deleteSelection()" class="pointer-events-auto glass-btn w-10 h-10 flex items-center justify-center rounded-xl text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm" title="Delete (Del)">
+                <i class="fa fa-trash"></i>
+            </button>
+        </div>
 
-        <!-- Canvas -->
-        <div class="flex-1 glass-panel rounded-2xl relative canvas-container overflow-hidden shadow-sm" id="canvasContainer">
-            <canvas id="mainCanvas" class="block outline-none w-full h-full"></canvas>
-            
-            <!-- Floating Tooltip -->
-            <div id="tooltip" class="fixed hidden glass-tooltip p-3 rounded-lg z-50 pointer-events-none transform translate-x-4 translate-y-4">
-                <div class="text-xs font-bold mb-1 border-b border-white/20 pb-1 flex justify-between items-center gap-4 opacity-80">
-                    <span>ID</span>
-                    <span id="tooltipId" class="font-mono"></span>
-                </div>
-                <div id="tooltipContent" class="space-y-1 mt-1.5"></div>
-            </div>
-        </div>
+        <!-- Canvas -->
+        <div class="flex-1 glass-panel rounded-2xl relative canvas-container overflow-hidden shadow-sm" id="canvasContainer">
+            <canvas id="mainCanvas" class="block outline-none w-full h-full"></canvas>
+            
+            <!-- Floating Tooltip -->
+            <div id="tooltip" class="fixed hidden glass-tooltip p-3 rounded-lg z-50 pointer-events-none transform translate-x-4 translate-y-4">
+                <div class="text-xs font-bold mb-1 border-b border-white/20 pb-1 flex justify-between items-center gap-4 opacity-80">
+                    <span>ID</span>
+                    <span id="tooltipId" class="font-mono"></span>
+                </div>
+                <div id="tooltipContent" class="space-y-1 mt-1.5"></div>
+            </div>
+        </div>
 
-        <!-- Bottom Diagnosis Cards -->
-        <div class="h-40 mt-4 flex gap-4 z-20">
-            <!-- Card 1 -->
-            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-rose-500 rotate-12 group-hover:scale-110 transition-transform">
-                    <i class="fa fa-heartbeat"></i>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-500">
-                        <i class="fa fa-heartbeat"></i>
-                    </div>
-                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">急救效率</h3>
-                </div>
-                <div>
-                    <div class="flex items-baseline gap-2">
-                        <span id="emergencyDepth" class="text-4xl font-mono font-bold text-gray-800 dark:text-gray-100">-</span>
-                        <span class="text-xs text-gray-400">Steps</span>
-                    </div>
-                    <div id="emergencyStatus" class="mt-2 text-[10px] font-bold px-2 py-1 rounded-md w-fit bg-gray-100 dark:bg-white/5 text-gray-500">
-                        N/A
-                    </div>
-                </div>
-            </div>
+        <!-- Bottom Diagnosis Cards -->
+        <div class="h-40 mt-4 flex gap-4 z-20">
+            <!-- Card 1 -->
+            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-rose-500 rotate-12 group-hover:scale-110 transition-transform">
+                    <i class="fa fa-heartbeat"></i>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-500">
+                        <i class="fa fa-heartbeat"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">急救效率</h3>
+                </div>
+                <div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="emergencyDepth" class="text-4xl font-mono font-bold text-gray-800 dark:text-gray-100">-</span>
+                        <span class="text-xs text-gray-400">Steps</span>
+                    </div>
+                    <div id="emergencyStatus" class="mt-2 text-[10px] font-bold px-2 py-1 rounded-md w-fit bg-gray-100 dark:bg-white/5 text-gray-500">
+                        N/A
+                    </div>
+                </div>
+            </div>
 
-            <!-- Card 2 -->
-            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-amber-500 rotate-12 group-hover:scale-110 transition-transform">
-                    <i class="fa fa-lock"></i>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-500">
-                        <i class="fa fa-lock"></i>
-                    </div>
-                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">ICU 隐私</h3>
-                </div>
-                <div>
-                    <div class="flex items-baseline gap-2">
-                        <span id="privacyValue" class="text-4xl font-mono font-bold text-gray-800 dark:text-gray-100">0.00</span>
-                        <span class="text-xs text-gray-400">R3</span>
-                    </div>
-                    <p id="privacyMsg" class="text-[10px] text-gray-500 mt-2">N/A</p>
-                </div>
-            </div>
+            <!-- Card 2 -->
+            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-amber-500 rotate-12 group-hover:scale-110 transition-transform">
+                    <i class="fa fa-lock"></i>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-500">
+                        <i class="fa fa-lock"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">ICU 隐私</h3>
+                </div>
+                <div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="privacyValue" class="text-4xl font-mono font-bold text-gray-800 dark:text-gray-100">0.00</span>
+                        <span class="text-xs text-gray-400">R3</span>
+                    </div>
+                    <p id="privacyMsg" class="text-[10px] text-gray-500 mt-2">N/A</p>
+                </div>
+            </div>
 
-            <!-- Card 3 -->
-            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-blue-500 rotate-12 group-hover:scale-110 transition-transform">
-                    <i class="fa fa-connectdevelop"></i>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
-                        <i class="fa fa-connectdevelop"></i>
-                    </div>
-                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">空间协同</h3>
-                </div>
-                <div class="w-full">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-xs text-gray-400">主轴状态</span>
-                        <span id="mainStreetStatus" class="text-xs font-bold text-gray-500 dark:text-gray-400">--</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shadow-inner">
-                        <div id="synergyBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- Card 3 -->
+            <div class="flex-1 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 text-8xl opacity-5 text-blue-500 rotate-12 group-hover:scale-110 transition-transform">
+                    <i class="fa fa-connectdevelop"></i>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+                        <i class="fa fa-connectdevelop"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-gray-700 dark:text-gray-200">空间协同</h3>
+                </div>
+                <div class="w-full">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-gray-400">主轴状态</span>
+                        <span id="mainStreetStatus" class="text-xs font-bold text-gray-500 dark:text-gray-400">--</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shadow-inner">
+                        <div id="synergyBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        // --- 核心算法 (Space Syntax) ---
-        // (保持原有的核心逻辑不变，仅优化显示相关逻辑)
-        const SyntaxEngine = {
-            getIntersection: (l1, l2) => {
-                const det = (l1.x2 - l1.x1) * (l2.y2 - l2.y1) - (l2.x2 - l2.x1) * (l1.y2 - l1.y1);
-                if (det === 0) return null;
-                const lambda = ((l2.y2 - l2.y1) * (l2.x2 - l1.x1) + (l2.x1 - l2.x2) * (l2.y2 - l1.y1)) / det;
-                const gamma = ((l1.y1 - l1.y2) * (l2.x2 - l1.x1) + (l1.x2 - l1.x1) * (l2.y2 - l1.y1)) / det;
-                return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
-            },
-            buildGraph: (lines) => {
-                const adjList = new Map();
-                lines.forEach(l => adjList.set(l.id, []));
-                for (let i = 0; i < lines.length; i++) {
-                    for (let j = i + 1; j < lines.length; j++) {
-                        if (SyntaxEngine.getIntersection(lines[i], lines[j])) {
-                            adjList.get(lines[i].id).push(lines[j].id);
-                            adjList.get(lines[j].id).push(lines[i].id);
-                        }
-                    }
-                }
-                return adjList;
-            },
-            bfs: (startIds, adjList, maxDepth = null) => {
-                const distances = new Map();
-                const queue = [];
-                const roots = Array.isArray(startIds) ? startIds : [startIds];
-                roots.forEach(id => { if (adjList.has(id)) { distances.set(id, 0); queue.push({ id, dist: 0 }); } });
-                let totalDepth = 0, nodeCount = 0;
-                while (queue.length > 0) {
-                    const { id, dist } = queue.shift();
-                    totalDepth += dist;
-                    nodeCount++;
-                    if (maxDepth !== null && dist >= maxDepth) continue;
-                    const neighbors = adjList.get(id) || [];
-                    for (const neighbor of neighbors) {
-                        if (!distances.has(neighbor)) {
-                            distances.set(neighbor, dist + 1);
-                            queue.push({ id: neighbor, dist: dist + 1 });
-                        }
-                    }
-                }
-                return { distances, totalDepth, nodeCount };
-            },
-            distPointToSegment: (p, s) => {
-                const A = p.x - s.x1, B = p.y - s.y1;
-                const C = s.x2 - s.x1, D = s.y2 - s.y1;
-                const dot = A * C + B * D;
-                const len_sq = C * C + D * D;
-                let param = -1;
-                if (len_sq !== 0) param = dot / len_sq;
-                let xx, yy;
-                if (param < 0) { xx = s.x1; yy = s.y1; }
-                else if (param > 1) { xx = s.x2; yy = s.y2; }
-                else { xx = s.x1 + param * C; yy = s.y1 + param * D; }
-                const dx = p.x - xx, dy = p.y - yy;
-                return Math.sqrt(dx * dx + dy * dy);
-            },
-            findClosestLineId: (point, lines) => {
-                let minD = Infinity; let id = null;
-                lines.forEach(l => { const d = SyntaxEngine.distPointToSegment(point, l); if (d < minD) { minD = d; id = l.id; } });
-                return id;
-            },
-            calculate: (lines, pois) => {
-                const adjList = SyntaxEngine.buildGraph(lines);
-                const results = {};
-                const entrancePOIs = pois.filter(p => p.type === 'ENTRANCE');
-                const hasEntrance = entrancePOIs.length > 0;
-                let entranceLineIds = [];
-                if (hasEntrance) entranceLineIds = entrancePOIs.map(ep => SyntaxEngine.findClosestLineId(ep, lines)).filter(id => id !== null);
-                let accessDepths = null;
-                if (hasEntrance && entranceLineIds.length > 0) accessDepths = SyntaxEngine.bfs(entranceLineIds, adjList).distances;
-                let minScore = Infinity, maxScore = -Infinity;
-                lines.forEach(line => {
-                    const global = SyntaxEngine.bfs(line.id, adjList, null);
-                    const local = SyntaxEngine.bfs(line.id, adjList, 3);
-                    const mdG = global.nodeCount > 1 ? global.totalDepth / (global.nodeCount - 1) : 0;
-                    const mdL = local.nodeCount > 1 ? local.totalDepth / (local.nodeCount - 1) : 0;
-                    const res = { globalRaw: mdG > 0 ? 1/mdG : 0, localRaw: mdL > 0 ? 1/mdL : 0, depths: global.distances, accessScore: 0 };
-                    if (hasEntrance && accessDepths) {
-                        const topoDepth = accessDepths.get(line.id);
-                        if (topoDepth !== undefined) {
-                            let minGeoDist = Infinity;
-                            entrancePOIs.forEach(ep => { const d = SyntaxEngine.distPointToSegment(ep, line); if (d < minGeoDist) minGeoDist = d; });
-                            const WEIGHT_TOPO = 150;
-                            res.accessScore = (topoDepth * WEIGHT_TOPO) + minGeoDist;
-                        } else { res.accessScore = Infinity; }
-                    }
-                    results[line.id] = res;
-                    const val = hasEntrance ? (res.accessScore === Infinity ? null : -res.accessScore) : res.globalRaw;
-                    if (val !== null) { if (val > maxScore) maxScore = val; if (val < minScore) minScore = val; }
-                });
-                const range = maxScore - minScore;
-                lines.forEach(line => {
-                    const r = results[line.id];
-                    let val = hasEntrance ? (r.accessScore === Infinity ? null : -r.accessScore) : r.globalRaw;
-                    if (val === null) r.norm = 0; else r.norm = range === 0 ? 0.5 : (val - minScore) / range;
-                });
-                return { data: results, mode: hasEntrance ? 'ACCESS' : 'INTEGRATION' };
-            }
-        };
+    <script>
+        // --- 核心算法 (Space Syntax) ---
+        // (保持原有的核心逻辑不变，仅优化显示相关逻辑)
+        const SyntaxEngine = {
+            getIntersection: (l1, l2) => {
+                const det = (l1.x2 - l1.x1) * (l2.y2 - l2.y1) - (l2.x2 - l2.x1) * (l1.y2 - l1.y1);
+                if (det === 0) return null;
+                const lambda = ((l2.y2 - l2.y1) * (l2.x2 - l1.x1) + (l2.x1 - l2.x2) * (l2.y2 - l1.y1)) / det;
+                const gamma = ((l1.y1 - l1.y2) * (l2.x2 - l1.x1) + (l1.x2 - l1.x1) * (l2.y2 - l1.y1)) / det;
+                return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+            },
+            buildGraph: (lines) => {
+                const adjList = new Map();
+                lines.forEach(l => adjList.set(l.id, []));
+                for (let i = 0; i < lines.length; i++) {
+                    for (let j = i + 1; j < lines.length; j++) {
+                        if (SyntaxEngine.getIntersection(lines[i], lines[j])) {
+                            adjList.get(lines[i].id).push(lines[j].id);
+                            adjList.get(lines[j].id).push(lines[i].id);
+                        }
+                    }
+                }
+                return adjList;
+            },
+            bfs: (startIds, adjList, maxDepth = null) => {
+                const distances = new Map();
+                const queue = [];
+                const roots = Array.isArray(startIds) ? startIds : [startIds];
+                roots.forEach(id => { if (adjList.has(id)) { distances.set(id, 0); queue.push({ id, dist: 0 }); } });
+                let totalDepth = 0, nodeCount = 0;
+                while (queue.length > 0) {
+                    const { id, dist } = queue.shift();
+                    totalDepth += dist;
+                    nodeCount++;
+                    if (maxDepth !== null && dist >= maxDepth) continue;
+                    const neighbors = adjList.get(id) || [];
+                    for (const neighbor of neighbors) {
+                        if (!distances.has(neighbor)) {
+                            distances.set(neighbor, dist + 1);
+                            queue.push({ id: neighbor, dist: dist + 1 });
+                        }
+                    }
+                }
+                return { distances, totalDepth, nodeCount };
+            },
+            distPointToSegment: (p, s) => {
+                const A = p.x - s.x1, B = p.y - s.y1;
+                const C = s.x2 - s.x1, D = s.y2 - s.y1;
+                const dot = A * C + B * D;
+                const len_sq = C * C + D * D;
+                let param = -1;
+                if (len_sq !== 0) param = dot / len_sq;
+                let xx, yy;
+                if (param < 0) { xx = s.x1; yy = s.y1; }
+                else if (param > 1) { xx = s.x2; yy = s.y2; }
+                else { xx = s.x1 + param * C; yy = s.y1 + param * D; }
+                const dx = p.x - xx, dy = p.y - yy;
+                return Math.sqrt(dx * dx + dy * dy);
+            },
+            findClosestLineId: (point, lines) => {
+                let minD = Infinity; let id = null;
+                lines.forEach(l => { const d = SyntaxEngine.distPointToSegment(point, l); if (d < minD) { minD = d; id = l.id; } });
+                return id;
+            },
+            calculate: (lines, pois) => {
+                const adjList = SyntaxEngine.buildGraph(lines);
+                const results = {};
+                const entrancePOIs = pois.filter(p => p.type === 'ENTRANCE');
+                const hasEntrance = entrancePOIs.length > 0;
+                let entranceLineIds = [];
+                if (hasEntrance) entranceLineIds = entrancePOIs.map(ep => SyntaxEngine.findClosestLineId(ep, lines)).filter(id => id !== null);
+                let accessDepths = null;
+                if (hasEntrance && entranceLineIds.length > 0) accessDepths = SyntaxEngine.bfs(entranceLineIds, adjList).distances;
+                let minScore = Infinity, maxScore = -Infinity;
+                lines.forEach(line => {
+                    const global = SyntaxEngine.bfs(line.id, adjList, null);
+                    const local = SyntaxEngine.bfs(line.id, adjList, 3);
+                    const mdG = global.nodeCount > 1 ? global.totalDepth / (global.nodeCount - 1) : 0;
+                    const mdL = local.nodeCount > 1 ? local.totalDepth / (local.nodeCount - 1) : 0;
+                    const res = { globalRaw: mdG > 0 ? 1/mdG : 0, localRaw: mdL > 0 ? 1/mdL : 0, depths: global.distances, accessScore: 0 };
+                    if (hasEntrance && accessDepths) {
+                        const topoDepth = accessDepths.get(line.id);
+                        if (topoDepth !== undefined) {
+                            let minGeoDist = Infinity;
+                            entrancePOIs.forEach(ep => { const d = SyntaxEngine.distPointToSegment(ep, line); if (d < minGeoDist) minGeoDist = d; });
+                            const WEIGHT_TOPO = 150;
+                            res.accessScore = (topoDepth * WEIGHT_TOPO) + minGeoDist;
+                        } else { res.accessScore = Infinity; }
+                    }
+                    results[line.id] = res;
+                    const val = hasEntrance ? (res.accessScore === Infinity ? null : -res.accessScore) : res.globalRaw;
+                    if (val !== null) { if (val > maxScore) maxScore = val; if (val < minScore) minScore = val; }
+                });
+                const range = maxScore - minScore;
+                lines.forEach(line => {
+                    const r = results[line.id];
+                    let val = hasEntrance ? (r.accessScore === Infinity ? null : -r.accessScore) : r.globalRaw;
+                    if (val === null) r.norm = 0; else r.norm = range === 0 ? 0.5 : (val - minScore) / range;
+                });
+                return { data: results, mode: hasEntrance ? 'ACCESS' : 'INTEGRATION' };
+            }
+        };
 
-        // --- State ---
-        const state = {
-            projectName: "Hospital_01",
-            theme: 'light', // light, dark, auto
-            lines: [], pois: [], metricsResult: { data: {}, mode: 'INTEGRATION' },
-            camera: { x: 0, y: 0, zoom: 1 },
-            mode: 'SELECT', selectedIds: [], hoverId: null,
-            isDragging: false, dragStart: { x: 0, y: 0 }, dragType: null, activeHandle: null, currentLine: null, boxSelectRect: null,
-            history: [], historyIndex: -1,
-            bgImage: null, bgImageDataUrl: null, bgImageName: null,
-            canvas: null, ctx: null
-        };
+        // --- State ---
+        const state = {
+            projectName: "Hospital_01",
+            theme: 'light', // light, dark, auto
+            lines: [], pois: [], metricsResult: { data: {}, mode: 'INTEGRATION' },
+            camera: { x: 0, y: 0, zoom: 1 },
+            mode: 'SELECT', selectedIds: [], hoverId: null,
+            isDragging: false, dragStart: { x: 0, y: 0 }, dragType: null, activeHandle: null, currentLine: null, boxSelectRect: null,
+            history: [], historyIndex: -1,
+            bgImage: null, bgImageDataUrl: null, bgImageName: null,
+            canvas: null, ctx: null
+        };
 
-        const historyManager = {
-            push: () => {
-                if (state.historyIndex < state.history.length - 1) state.history = state.history.slice(0, state.historyIndex + 1);
-                state.history.push(JSON.stringify({ lines: state.lines, pois: state.pois }));
-                state.historyIndex++;
-                if (state.history.length > 20) { state.history.shift(); state.historyIndex--; }
-            },
-            undo: () => {
-                if (state.historyIndex > 0) {
-                    state.historyIndex--;
-                    const snap = JSON.parse(state.history[state.historyIndex]);
-                    state.lines = snap.lines; state.pois = snap.pois; state.selectedIds = [];
-                    actions.recalculate();
-                }
-            }
-        };
+        const historyManager = {
+            push: () => {
+                if (state.historyIndex < state.history.length - 1) state.history = state.history.slice(0, state.historyIndex + 1);
+                state.history.push(JSON.stringify({ lines: state.lines, pois: state.pois }));
+                state.historyIndex++;
+                if (state.history.length > 20) { state.history.shift(); state.historyIndex--; }
+            },
+            undo: () => {
+                if (state.historyIndex > 0) {
+                    state.historyIndex--;
+                    const snap = JSON.parse(state.history[state.historyIndex]);
+                    state.lines = snap.lines; state.pois = snap.pois; state.selectedIds = [];
+                    actions.recalculate();
+                }
+            }
+        };
 
-        const transform = {
-            screenToWorld: (sx, sy) => ({ x: (sx - state.camera.x) / state.camera.zoom, y: (sy - state.camera.y) / state.camera.zoom }),
-            worldToScreen: (wx, wy) => ({ x: wx * state.camera.zoom + state.camera.x, y: wy * state.camera.zoom + state.camera.y })
-        };
+        const transform = {
+            screenToWorld: (sx, sy) => ({ x: (sx - state.camera.x) / state.camera.zoom, y: (sy - state.camera.y) / state.camera.zoom }),
+            worldToScreen: (wx, wy) => ({ x: wx * state.camera.zoom + state.camera.x, y: wy * state.camera.zoom + state.camera.y })
+        };
 
-        // --- Theme Logic ---
-        function toggleTheme() {
-            if (state.theme === 'light') setTheme('dark');
-            else if (state.theme === 'dark') setTheme('auto');
-            else setTheme('light');
-        }
+        // --- Theme Logic ---
+        function toggleTheme() {
+            if (state.theme === 'light') setTheme('dark');
+            else if (state.theme === 'dark') setTheme('auto');
+            else setTheme('light');
+        }
 
-        function setTheme(mode) {
-            state.theme = mode;
-            const root = document.documentElement;
-            const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            let applyDark = false;
-            if (mode === 'dark') applyDark = true;
-            else if (mode === 'auto') applyDark = isSystemDark;
+        function setTheme(mode) {
+            state.theme = mode;
+            const root = document.documentElement;
+            const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            let applyDark = false;
+            if (mode === 'dark') applyDark = true;
+            else if (mode === 'auto') applyDark = isSystemDark;
 
-            if (applyDark) root.classList.add('dark');
-            else root.classList.remove('dark');
+            if (applyDark) root.classList.add('dark');
+            else root.classList.remove('dark');
 
-            // Update Icon
-            const btn = document.getElementById('themeToggle');
-            if (mode === 'auto') btn.innerHTML = '<i class="fa fa-desktop"></i>';
-            else if (mode === 'dark') btn.innerHTML = '<i class="fa fa-moon-o"></i>';
-            else btn.innerHTML = '<i class="fa fa-sun-o"></i>';
-            
-            render(); // Redraw canvas with new colors
-        }
+            // Update Icon
+            const btn = document.getElementById('themeToggle');
+            if (mode === 'auto') btn.innerHTML = '<i class="fa fa-desktop"></i>';
+            else if (mode === 'dark') btn.innerHTML = '<i class="fa fa-moon-o"></i>';
+            else btn.innerHTML = '<i class="fa fa-sun-o"></i>';
+            
+            render(); // Redraw canvas with new colors
+        }
 
-        // --- Initialization ---
-        function init() {
-            state.canvas = document.getElementById('mainCanvas');
-            state.ctx = state.canvas.getContext('2d');
-            state.lines = [
-                { id: 'l1', x1: 100, y1: 400, x2: 900, y2: 400 },
-                { id: 'l2', x1: 300, y1: 100, x2: 300, y2: 600 },
-                { id: 'l3', x1: 700, y1: 200, x2: 700, y2: 500 }
-            ];
-            historyManager.push();
-            document.getElementById('projectTitle').innerText = state.projectName;
-            
-            // Auto detect system theme initially
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
-            else setTheme('light');
+        // --- Initialization ---
+        function init() {
+            state.canvas = document.getElementById('mainCanvas');
+            state.ctx = state.canvas.getContext('2d');
+            state.lines = [
+                { id: 'l1', x1: 100, y1: 400, x2: 900, y2: 400 },
+                { id: 'l2', x1: 300, y1: 100, x2: 300, y2: 600 },
+                { id: 'l3', x1: 700, y1: 200, x2: 700, y2: 500 }
+            ];
+            historyManager.push();
+            document.getElementById('projectTitle').innerText = state.projectName;
+            
+            // Auto detect system theme initially
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+            else setTheme('light');
 
-            resizeCanvas();
-            bindEvents();
-            actions.recalculate();
-            
-            const loop = () => { render(); requestAnimationFrame(loop); };
-            loop();
-        }
+            resizeCanvas();
+            bindEvents();
+            actions.recalculate();
+            
+            const loop = () => { render(); requestAnimationFrame(loop); };
+            loop();
+        }
 
-        function resizeCanvas() {
-            const container = document.getElementById('canvasContainer');
-            state.canvas.width = container.clientWidth;
-            state.canvas.height = container.clientHeight;
-            render();
-        }
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            state.canvas.width = container.clientWidth;
+            state.canvas.height = container.clientHeight;
+            render();
+        }
 
-        function bindEvents() {
-            const c = state.canvas;
-            window.addEventListener('resize', resizeCanvas);
-            c.addEventListener('mousedown', onMouseDown);
-            window.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('mouseup', onMouseUp);
-            c.addEventListener('wheel', onWheel, { passive: false });
-            window.addEventListener('keydown', onKeyDown);
-        }
+        function bindEvents() {
+            const c = state.canvas;
+            window.addEventListener('resize', resizeCanvas);
+            c.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            c.addEventListener('wheel', onWheel, { passive: false });
+            window.addEventListener('keydown', onKeyDown);
+        }
 
-        // --- Interactions (Refined for Glass UI) ---
-        function handleRename() {
-            const newName = prompt("Project Name:", state.projectName);
-            if (newName && newName.trim()) {
-                state.projectName = newName.trim();
-                document.getElementById('projectTitle').innerText = state.projectName;
-            }
-        }
-        
-        function handleImportClick() { document.getElementById('importInput').click(); }
+        // --- Interactions (Refined for Glass UI) ---
+        function handleRename() {
+            const newName = prompt("Project Name:", state.projectName);
+            if (newName && newName.trim()) {
+                state.projectName = newName.trim();
+                document.getElementById('projectTitle').innerText = state.projectName;
+            }
+        }
+        
+        function handleImportClick() { document.getElementById('importInput').click(); }
 
-        async function handleImportFile(e) {
-            const file = e.target.files[0]; if (!file) return;
-            try {
-                const zip = await JSZip.loadAsync(file);
-                const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('_data.json'));
-                if (!jsonFile) throw new Error("No data file found.");
-                const data = JSON.parse(await jsonFile.async("string"));
-                if (data.meta) { state.projectName = data.meta.projectName; document.getElementById('projectTitle').innerText = state.projectName; }
-                if (data.geometry) { state.lines = data.geometry.lines || []; state.pois = data.geometry.pois || []; }
-                if (data.view) state.camera = data.view.camera;
-                
-                const imgName = data.resources && data.resources.bgImage;
-                state.bgImage = null; state.bgImageDataUrl = null; state.bgImageName = null;
-                if (imgName) {
-                    const imgFile = zip.file(imgName);
-                    if (imgFile) {
-                        const base64 = await imgFile.async("base64");
-                        const dataUrl = `data:image/${imgName.endsWith('.png')?'png':'jpeg'};base64,${base64}`;
-                        state.bgImageDataUrl = dataUrl; state.bgImageName = imgName;
-                        await new Promise((res) => { const img = new Image(); img.onload = () => { state.bgImage = img; res(); }; img.src = dataUrl; });
-                    }
-                }
-                state.history = []; state.historyIndex = -1; historyManager.push();
-                actions.recalculate(); render();
-                alert("Imported successfully.");
-            } catch (err) { alert("Import failed: " + err.message); }
-            e.target.value = '';
-        }
+        async function handleImportFile(e) {
+            const file = e.target.files[0]; if (!file) return;
+            try {
+                const zip = await JSZip.loadAsync(file);
+                const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('_data.json'));
+                if (!jsonFile) throw new Error("No data file found.");
+                const data = JSON.parse(await jsonFile.async("string"));
+                if (data.meta) { state.projectName = data.meta.projectName; document.getElementById('projectTitle').innerText = state.projectName; }
+                if (data.geometry) { state.lines = data.geometry.lines || []; state.pois = data.geometry.pois || []; }
+                if (data.view) state.camera = data.view.camera;
+                
+                const imgName = data.resources && data.resources.bgImage;
+                state.bgImage = null; state.bgImageDataUrl = null; state.bgImageName = null;
+                if (imgName) {
+                    const imgFile = zip.file(imgName);
+                    if (imgFile) {
+                        const base64 = await imgFile.async("base64");
+                        const dataUrl = `data:image/${imgName.endsWith('.png')?'png':'jpeg'};base64,${base64}`;
+                        state.bgImageDataUrl = dataUrl; state.bgImageName = imgName;
+                        await new Promise((res) => { const img = new Image(); img.onload = () => { state.bgImage = img; res(); }; img.src = dataUrl; });
+                    }
+                }
+                state.history = []; state.historyIndex = -1; historyManager.push();
+                actions.recalculate(); render();
+                alert("Imported successfully.");
+            } catch (err) { alert("Import failed: " + err.message); }
+            e.target.value = '';
+        }
 
-        async function handleExport() {
-            const btn = document.getElementById('exportBtn');
-            const original = btn.innerHTML; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-            try {
-                const zip = new JSZip();
-                const data = {
-                    meta: { appName: "HSO Pro", version: "3.0", projectName: state.projectName },
-                    geometry: { lines: state.lines, pois: state.pois },
-                    view: { camera: state.camera },
-                    analysis: { mode: state.metricsResult.mode, metrics: state.metricsResult.data },
-                    resources: { bgImage: state.bgImageName }
-                };
-                zip.file(`${state.projectName}_data.json`, JSON.stringify(data, null, 2));
-                if (state.bgImageDataUrl) zip.file(state.bgImageName || "bg.png", state.bgImageDataUrl.split(',')[1], {base64: true});
-                const content = await zip.generateAsync({type:"blob"});
-                saveAs(content, `${state.projectName}.zip`);
-            } catch(e) { alert("Export failed"); }
-            btn.innerHTML = original;
-        }
+        async function handleExport() {
+            const btn = document.getElementById('exportBtn');
+            const original = btn.innerHTML; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+            try {
+                const zip = new JSZip();
+                const data = {
+                    meta: { appName: "HSO Pro", version: "3.0", projectName: state.projectName },
+                    geometry: { lines: state.lines, pois: state.pois },
+                    view: { camera: state.camera },
+                    analysis: { mode: state.metricsResult.mode, metrics: state.metricsResult.data },
+                    resources: { bgImage: state.bgImageName }
+                };
+                zip.file(`${state.projectName}_data.json`, JSON.stringify(data, null, 2));
+                if (state.bgImageDataUrl) zip.file(state.bgImageName || "bg.png", state.bgImageDataUrl.split(',')[1], {base64: true});
+                const content = await zip.generateAsync({type:"blob"});
+                saveAs(content, `${state.projectName}.zip`);
+            } catch(e) { alert("Export failed"); }
+            btn.innerHTML = original;
+        }
 
-        function handleFileUpload(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const img = new Image();
-                img.onload = () => {
-                    state.bgImage = img; state.bgImageDataUrl = ev.target.result; state.bgImageName = file.name;
-                    state.camera.x = (state.canvas.width - img.width)/2; state.camera.y = (state.canvas.height - img.height)/2;
-                    render();
-                };
-                img.src = ev.target.result;
-            };
-            r.readAsDataURL(file);
-        }
+        function handleFileUpload(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.bgImage = img; state.bgImageDataUrl = ev.target.result; state.bgImageName = file.name;
+                    state.camera.x = (state.canvas.width - img.width)/2; state.camera.y = (state.canvas.height - img.height)/2;
+                    render();
+                };
+                img.src = ev.target.result;
+            };
+            r.readAsDataURL(file);
+        }
 
-        // --- Mouse Events (Simplified logic for brevity, keeping core) ---
-        function onMouseDown(e) {
-            e.preventDefault();
-            const { offsetX, offsetY, button } = e;
-            const worldPos = transform.screenToWorld(offsetX, offsetY);
-            if (button === 1 || (button === 0 && e.code === 'Space')) {
-                state.isDragging = true; state.dragType = 'PAN'; state.dragStart = { x: offsetX, y: offsetY };
-                state.canvas.classList.add('cursor-panning'); return;
-            }
-            if (button === 0) {
-                state.dragStart = { x: worldPos.x, y: worldPos.y }; state.isDragging = true;
-                if (state.mode === 'DRAW') { state.currentLine = { x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y }; return; }
-                if (state.mode.startsWith('POI')) {
-                    const type = state.mode.split('_')[1];
-                    state.pois.push({ id: `p_${Date.now()}`, x: worldPos.x, y: worldPos.y, type });
-                    historyManager.push(); state.mode = 'SELECT'; updateUI(); actions.recalculate(); return;
-                }
-                if (state.mode === 'SELECT') {
-                    if (state.selectedIds.length === 1) {
-                        const l = state.lines.find(l => l.id === state.selectedIds[0]);
-                        if (l) {
-                            const R = 10/state.camera.zoom;
-                            if (Math.hypot(l.x1-worldPos.x, l.y1-worldPos.y)<R) { state.dragType='EDIT'; state.activeHandle='start'; return;}
-                            if (Math.hypot(l.x2-worldPos.x, l.y2-worldPos.y)<R) { state.dragType='EDIT'; state.activeHandle='end'; return;}
-                        }
-                    }
-                    const hit = hitTest(worldPos);
-                    if (hit) {
-                        state.dragType = 'MOVE';
-                        if (e.ctrlKey) state.selectedIds = state.selectedIds.includes(hit.id) ? state.selectedIds.filter(id=>id!==hit.id) : [...state.selectedIds, hit.id];
-                        else if (!state.selectedIds.includes(hit.id)) state.selectedIds = [hit.id];
-                    } else {
-                        state.dragType = 'BOX'; state.boxSelectRect = { x: worldPos.x, y: worldPos.y, w: 0, h: 0 };
-                        if (!e.ctrlKey) state.selectedIds = [];
-                    }
-                }
-            }
-        }
-        function onMouseMove(e) {
-            const rect = state.canvas.getBoundingClientRect();
-            const offsetX = e.clientX - rect.left; const offsetY = e.clientY - rect.top;
-            const worldPos = transform.screenToWorld(offsetX, offsetY);
+        // --- Mouse Events (Simplified logic for brevity, keeping core) ---
+        function onMouseDown(e) {
+            e.preventDefault();
+            const { offsetX, offsetY, button } = e;
+            const worldPos = transform.screenToWorld(offsetX, offsetY);
+            if (button === 1 || (button === 0 && e.code === 'Space')) {
+                state.isDragging = true; state.dragType = 'PAN'; state.dragStart = { x: offsetX, y: offsetY };
+                state.canvas.classList.add('cursor-panning'); return;
+            }
+            if (button === 0) {
+                state.dragStart = { x: worldPos.x, y: worldPos.y }; state.isDragging = true;
+                if (state.mode === 'DRAW') { state.currentLine = { x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y }; return; }
+                if (state.mode.startsWith('POI')) {
+                    const type = state.mode.split('_')[1];
+                    state.pois.push({ id: `p_${Date.now()}`, x: worldPos.x, y: worldPos.y, type });
+                    historyManager.push(); state.mode = 'SELECT'; updateUI(); actions.recalculate(); return;
+                }
+                if (state.mode === 'SELECT') {
+                    if (state.selectedIds.length === 1) {
+                        const l = state.lines.find(l => l.id === state.selectedIds[0]);
+                        if (l) {
+                            const R = 10/state.camera.zoom;
+                            if (Math.hypot(l.x1-worldPos.x, l.y1-worldPos.y)<R) { state.dragType='EDIT'; state.activeHandle='start'; return;}
+                            if (Math.hypot(l.x2-worldPos.x, l.y2-worldPos.y)<R) { state.dragType='EDIT'; state.activeHandle='end'; return;}
+                        }
+                    }
+                    const hit = hitTest(worldPos);
+                    if (hit) {
+                        state.dragType = 'MOVE';
+                        if (e.ctrlKey) state.selectedIds = state.selectedIds.includes(hit.id) ? state.selectedIds.filter(id=>id!==hit.id) : [...state.selectedIds, hit.id];
+                        else if (!state.selectedIds.includes(hit.id)) state.selectedIds = [hit.id];
+                    } else {
+                        state.dragType = 'BOX'; state.boxSelectRect = { x: worldPos.x, y: worldPos.y, w: 0, h: 0 };
+                        if (!e.ctrlKey) state.selectedIds = [];
+                    }
+                }
+            }
+        }
+        function onMouseMove(e) {
+            const rect = state.canvas.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left; const offsetY = e.clientY - rect.top;
+            const worldPos = transform.screenToWorld(offsetX, offsetY);
 
-            if (!state.isDragging) {
-                const hit = hitTest(worldPos); state.hoverId = hit ? hit.id : null;
-                const metrics = state.metricsResult.data;
-                if (hit && metrics[hit.id]) showTooltip(e.clientX, e.clientY, hit.id, metrics[hit.id], state.metricsResult.mode);
-                else hideTooltip();
-                return;
-            }
-            if (state.dragType === 'PAN') {
-                state.camera.x += offsetX - state.dragStart.x; state.camera.y += offsetY - state.dragStart.y;
-                state.dragStart = { x: offsetX, y: offsetY };
-            } else if (state.mode === 'DRAW' && state.currentLine) {
-                state.currentLine.x2 = worldPos.x; state.currentLine.y2 = worldPos.y;
-            } else if (state.dragType === 'MOVE') {
-                const dx = worldPos.x - state.dragStart.x; const dy = worldPos.y - state.dragStart.y;
-                state.selectedIds.forEach(id => {
-                    const l = state.lines.find(x => x.id === id); if (l) { l.x1+=dx; l.y1+=dy; l.x2+=dx; l.y2+=dy; }
-                    const p = state.pois.find(x => x.id === id); if (p) { p.x+=dx; p.y+=dy; }
-                });
-                state.dragStart = { x: worldPos.x, y: worldPos.y }; actions.recalculate();
-            } else if (state.dragType === 'EDIT') {
-                const l = state.lines.find(x => x.id === state.selectedIds[0]);
-                if (l) { if (state.activeHandle==='start') {l.x1=worldPos.x; l.y1=worldPos.y;} else {l.x2=worldPos.x; l.y2=worldPos.y;} actions.recalculate(); }
-            } else if (state.dragType === 'BOX') {
-                state.boxSelectRect.w = worldPos.x - state.boxSelectRect.x; state.boxSelectRect.h = worldPos.y - state.boxSelectRect.y;
-                const bx = Math.min(state.boxSelectRect.x, state.boxSelectRect.x+state.boxSelectRect.w);
-                const by = Math.min(state.boxSelectRect.y, state.boxSelectRect.y+state.boxSelectRect.h);
-                const bw = Math.abs(state.boxSelectRect.w), bh = Math.abs(state.boxSelectRect.h);
-                const sel = [];
-                state.lines.forEach(l => { if ((l.x1+l.x2)/2 >= bx && (l.x1+l.x2)/2 <= bx+bw && (l.y1+l.y2)/2 >= by && (l.y1+l.y2)/2 <= by+bh) sel.push(l.id); });
-                state.pois.forEach(p => { if (p.x >= bx && p.x <= bx+bw && p.y >= by && p.y <= by+bh) sel.push(p.id); });
-                state.selectedIds = sel;
-            }
-        }
-        function onMouseUp() {
-            if (state.mode === 'DRAW' && state.currentLine) {
-                if (Math.hypot(state.currentLine.x2-state.currentLine.x1, state.currentLine.y2-state.currentLine.y1) > 5) {
-                    state.currentLine.id = `l_${Date.now()}`; state.lines.push(state.currentLine); historyManager.push(); actions.recalculate();
-                }
-                state.currentLine = null;
-            } else if (state.dragType) historyManager.push();
-            state.isDragging = false; state.dragType = null; state.canvas.classList.remove('cursor-panning');
-        }
-        function onWheel(e) {
-            e.preventDefault(); const sens = 0.001; const d = -e.deltaY * sens;
-            const rect = state.canvas.getBoundingClientRect();
-            const wm = transform.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-            let nz = Math.max(0.1, Math.min(10, state.camera.zoom * (d>0?1.1:0.9)));
-            state.camera.x = (e.clientX-rect.left) - wm.x * nz; state.camera.y = (e.clientY-rect.top) - wm.y * nz; state.camera.zoom = nz;
-            document.getElementById('zoomLevel').innerText = Math.round(nz*100)+'%';
-        }
-        function onKeyDown(e) {
-            if (e.key === 'Delete') actions.deleteSelection();
-            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) actions.undo();
-            if (e.key === 'v') setMode('SELECT'); if (e.key === 'p') setMode('DRAW');
-        }
-        function hitTest(pos) {
-            const R = 8/state.camera.zoom;
-            for (let i=state.pois.length-1; i>=0; i--) if (Math.hypot(state.pois[i].x-pos.x, state.pois[i].y-pos.y)<R*1.5) return state.pois[i];
-            for (let i=state.lines.length-1; i>=0; i--) if (SyntaxEngine.distPointToSegment(pos, state.lines[i])<R) return state.lines[i];
-            return null;
-        }
+            if (!state.isDragging) {
+                const hit = hitTest(worldPos); state.hoverId = hit ? hit.id : null;
+                const metrics = state.metricsResult.data;
+                if (hit && metrics[hit.id]) showTooltip(e.clientX, e.clientY, hit.id, metrics[hit.id], state.metricsResult.mode);
+                else hideTooltip();
+                return;
+            }
+            if (state.dragType === 'PAN') {
+                state.camera.x += offsetX - state.dragStart.x; state.camera.y += offsetY - state.dragStart.y;
+                state.dragStart = { x: offsetX, y: offsetY };
+            } else if (state.mode === 'DRAW' && state.currentLine) {
+                state.currentLine.x2 = worldPos.x; state.currentLine.y2 = worldPos.y;
+            } else if (state.dragType === 'MOVE') {
+                const dx = worldPos.x - state.dragStart.x; const dy = worldPos.y - state.dragStart.y;
+                state.selectedIds.forEach(id => {
+                    const l = state.lines.find(x => x.id === id); if (l) { l.x1+=dx; l.y1+=dy; l.x2+=dx; l.y2+=dy; }
+                    const p = state.pois.find(x => x.id === id); if (p) { p.x+=dx; p.y+=dy; }
+                });
+                state.dragStart = { x: worldPos.x, y: worldPos.y }; actions.recalculate();
+            } else if (state.dragType === 'EDIT') {
+                const l = state.lines.find(x => x.id === state.selectedIds[0]);
+                if (l) { if (state.activeHandle==='start') {l.x1=worldPos.x; l.y1=worldPos.y;} else {l.x2=worldPos.x; l.y2=worldPos.y;} actions.recalculate(); }
+            } else if (state.dragType === 'BOX') {
+                state.boxSelectRect.w = worldPos.x - state.boxSelectRect.x; state.boxSelectRect.h = worldPos.y - state.boxSelectRect.y;
+                const bx = Math.min(state.boxSelectRect.x, state.boxSelectRect.x+state.boxSelectRect.w);
+                const by = Math.min(state.boxSelectRect.y, state.boxSelectRect.y+state.boxSelectRect.h);
+                const bw = Math.abs(state.boxSelectRect.w), bh = Math.abs(state.boxSelectRect.h);
+                const sel = [];
+                state.lines.forEach(l => { if ((l.x1+l.x2)/2 >= bx && (l.x1+l.x2)/2 <= bx+bw && (l.y1+l.y2)/2 >= by && (l.y1+l.y2)/2 <= by+bh) sel.push(l.id); });
+                state.pois.forEach(p => { if (p.x >= bx && p.x <= bx+bw && p.y >= by && p.y <= by+bh) sel.push(p.id); });
+                state.selectedIds = sel;
+            }
+        }
+        function onMouseUp() {
+            if (state.mode === 'DRAW' && state.currentLine) {
+                if (Math.hypot(state.currentLine.x2-state.currentLine.x1, state.currentLine.y2-state.currentLine.y1) > 5) {
+                    state.currentLine.id = `l_${Date.now()}`; state.lines.push(state.currentLine); historyManager.push(); actions.recalculate();
+                }
+                state.currentLine = null;
+            } else if (state.dragType) historyManager.push();
+            state.isDragging = false; state.dragType = null; state.canvas.classList.remove('cursor-panning');
+        }
+        function onWheel(e) {
+            e.preventDefault(); const sens = 0.001; const d = -e.deltaY * sens;
+            const rect = state.canvas.getBoundingClientRect();
+            const wm = transform.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+            let nz = Math.max(0.1, Math.min(10, state.camera.zoom * (d>0?1.1:0.9)));
+            state.camera.x = (e.clientX-rect.left) - wm.x * nz; state.camera.y = (e.clientY-rect.top) - wm.y * nz; state.camera.zoom = nz;
+            document.getElementById('zoomLevel').innerText = Math.round(nz*100)+'%';
+        }
+        function onKeyDown(e) {
+            if (e.key === 'Delete') actions.deleteSelection();
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) actions.undo();
+            if (e.key === 'v') setMode('SELECT'); if (e.key === 'p') setMode('DRAW');
+        }
+        function hitTest(pos) {
+            const R = 8/state.camera.zoom;
+            for (let i=state.pois.length-1; i>=0; i--) if (Math.hypot(state.pois[i].x-pos.x, state.pois[i].y-pos.y)<R*1.5) return state.pois[i];
+            for (let i=state.lines.length-1; i>=0; i--) if (SyntaxEngine.distPointToSegment(pos, state.lines[i])<R) return state.lines[i];
+            return null;
+        }
 
-        // --- Render (Themed) ---
-        function render() {
-            const { ctx, canvas, camera, lines, pois, selectedIds } = state;
-            const metrics = state.metricsResult.data;
-            const isDark = document.documentElement.classList.contains('dark');
-            
-            // Theme colors
-            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-            const inactiveLine = isDark ? '#475569' : '#94a3b8'; // slate-600 : slate-400
-            const textColor = isDark ? '#e2e8f0' : '#1e293b';
+        // --- Render (Themed) ---
+        function render() {
+            const { ctx, canvas, camera, lines, pois, selectedIds } = state;
+            const metrics = state.metricsResult.data;
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            // Theme colors
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const inactiveLine = isDark ? '#475569' : '#94a3b8'; // slate-600 : slate-400
+            const textColor = isDark ? '#e2e8f0' : '#1e293b';
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(camera.x, camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            
-            if (state.bgImage) ctx.drawImage(state.bgImage, 0, 0); 
-            else drawGrid(ctx, canvas, camera, gridColor);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(camera.x, camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            
+            if (state.bgImage) ctx.drawImage(state.bgImage, 0, 0); 
+            else drawGrid(ctx, canvas, camera, gridColor);
 
-            lines.forEach(l => {
-                const sel = selectedIds.includes(l.id); const hov = state.hoverId === l.id;
-                const m = metrics[l.id];
-                ctx.lineCap = 'round';
-                
-                // Glow
-                if (sel || hov) {
-                    ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
-                    ctx.lineWidth = 14/camera.zoom;
-                    ctx.strokeStyle = sel ? 'rgba(250, 204, 21, 0.4)' : 'rgba(255, 255, 255, 0.4)';
-                    ctx.stroke();
-                }
+            lines.forEach(l => {
+                const sel = selectedIds.includes(l.id); const hov = state.hoverId === l.id;
+                const m = metrics[l.id];
+                ctx.lineCap = 'round';
+                
+                // Glow
+                if (sel || hov) {
+                    ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+                    ctx.lineWidth = 14/camera.zoom;
+                    ctx.strokeStyle = sel ? 'rgba(250, 204, 21, 0.4)' : 'rgba(255, 255, 255, 0.4)';
+                    ctx.stroke();
+                }
 
-                ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
-                ctx.lineWidth = 6/camera.zoom;
-                
-                if (m) {
-                    // Vivid Colors
-                    ctx.strokeStyle = `hsl(${(1 - m.norm) * 240}, 90%, 60%)`;
-                } else {
-                    ctx.strokeStyle = inactiveLine;
-                }
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+                ctx.lineWidth = 6/camera.zoom;
+                
+                if (m) {
+                    // Vivid Colors
+                    ctx.strokeStyle = `hsl(${(1 - m.norm) * 240}, 90%, 60%)`;
+                } else {
+                    ctx.strokeStyle = inactiveLine;
+                }
+                ctx.stroke();
 
-                if (sel && selectedIds.length===1) {
-                    drawHandle(ctx, l.x1, l.y1, camera.zoom); drawHandle(ctx, l.x2, l.y2, camera.zoom);
-                }
-            });
+                if (sel && selectedIds.length===1) {
+                    drawHandle(ctx, l.x1, l.y1, camera.zoom); drawHandle(ctx, l.x2, l.y2, camera.zoom);
+                }
+            });
 
-            if (state.currentLine) {
-                const l = state.currentLine;
-                ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
-                ctx.lineWidth = 2/camera.zoom; ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([5/camera.zoom]); ctx.stroke(); ctx.setLineDash([]);
-            }
+            if (state.currentLine) {
+                const l = state.currentLine;
+                ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+                ctx.lineWidth = 2/camera.zoom; ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([5/camera.zoom]); ctx.stroke(); ctx.setLineDash([]);
+            }
 
-            pois.forEach(p => {
-                const sel = selectedIds.includes(p.id); const r = (sel?10:8)/camera.zoom;
-                ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-                let col = '#64748b'; let txt = '';
-                if (p.type==='EMERGENCY') {col='#ef4444'; txt='E';} else if (p.type==='SURGERY') {col='#3b82f6'; txt='S';}
-                else if (p.type==='ICU') {col='#a855f7'; txt='I';} else if (p.type==='WARD') {col='#10b981'; txt='W';}
-                else if (p.type==='ENTRANCE') {col='#d97706'; txt='In';}
-                ctx.fillStyle = col; ctx.fill();
-                
-                if (sel) { ctx.lineWidth=3/camera.zoom; ctx.strokeStyle='#facc15'; ctx.stroke(); }
-                else { ctx.lineWidth=1.5/camera.zoom; ctx.strokeStyle='#fff'; ctx.stroke(); }
-                
-                ctx.fillStyle = '#fff'; ctx.font = `bold ${9/camera.zoom}px Inter, sans-serif`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, p.x, p.y);
-            });
+            pois.forEach(p => {
+                const sel = selectedIds.includes(p.id); const r = (sel?10:8)/camera.zoom;
+                ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+                let col = '#64748b'; let txt = '';
+                if (p.type==='EMERGENCY') {col='#ef4444'; txt='E';} else if (p.type==='SURGERY') {col='#3b82f6'; txt='S';}
+                else if (p.type==='ICU') {col='#a855f7'; txt='I';} else if (p.type==='WARD') {col='#10b981'; txt='W';}
+                else if (p.type==='ENTRANCE') {col='#d97706'; txt='In';}
+                ctx.fillStyle = col; ctx.fill();
+                
+                if (sel) { ctx.lineWidth=3/camera.zoom; ctx.strokeStyle='#facc15'; ctx.stroke(); }
+                else { ctx.lineWidth=1.5/camera.zoom; ctx.strokeStyle='#fff'; ctx.stroke(); }
+                
+                ctx.fillStyle = '#fff'; ctx.font = `bold ${9/camera.zoom}px Inter, sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, p.x, p.y);
+            });
 
-            if (state.dragType==='BOX' && state.boxSelectRect) {
-                const r = state.boxSelectRect;
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1/camera.zoom;
-                ctx.fillRect(r.x, r.y, r.w, r.h); ctx.strokeRect(r.x, r.y, r.w, r.h);
-            }
-            ctx.restore();
-        }
+            if (state.dragType==='BOX' && state.boxSelectRect) {
+                const r = state.boxSelectRect;
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1/camera.zoom;
+                ctx.fillRect(r.x, r.y, r.w, r.h); ctx.strokeRect(r.x, r.y, r.w, r.h);
+            }
+            ctx.restore();
+        }
 
-        function drawGrid(ctx, canvas, camera, color) {
-            const step = 100; ctx.strokeStyle = color; ctx.lineWidth = 1/camera.zoom;
-            const l = -camera.x/camera.zoom, t = -camera.y/camera.zoom;
-            const r = l + canvas.width/camera.zoom, b = t + canvas.height/camera.zoom;
-            ctx.beginPath();
-            for (let x=Math.floor(l/step)*step; x<r; x+=step) { ctx.moveTo(x, t); ctx.lineTo(x, b); }
-            for (let y=Math.floor(t/step)*step; y<b; y+=step) { ctx.moveTo(l, y); ctx.lineTo(r, y); }
-            ctx.stroke();
-        }
-        function drawHandle(ctx, x, y, zoom) {
-            const s = 8/zoom; ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=1/zoom;
-            ctx.beginPath(); ctx.rect(x-s/2, y-s/2, s, s); ctx.fill(); ctx.stroke();
-        }
+        function drawGrid(ctx, canvas, camera, color) {
+            const step = 100; ctx.strokeStyle = color; ctx.lineWidth = 1/camera.zoom;
+            const l = -camera.x/camera.zoom, t = -camera.y/camera.zoom;
+            const r = l + canvas.width/camera.zoom, b = t + canvas.height/camera.zoom;
+            ctx.beginPath();
+            for (let x=Math.floor(l/step)*step; x<r; x+=step) { ctx.moveTo(x, t); ctx.lineTo(x, b); }
+            for (let y=Math.floor(t/step)*step; y<b; y+=step) { ctx.moveTo(l, y); ctx.lineTo(r, y); }
+            ctx.stroke();
+        }
+        function drawHandle(ctx, x, y, zoom) {
+            const s = 8/zoom; ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=1/zoom;
+            ctx.beginPath(); ctx.rect(x-s/2, y-s/2, s, s); ctx.fill(); ctx.stroke();
+        }
 
-        // --- Helpers ---
-        const actions = {
-            recalculate: () => {
-                state.metricsResult = SyntaxEngine.calculate(state.lines, state.pois);
-                document.getElementById('objCount').innerText = state.lines.length;
-                updateDiagnostics(); updateUI();
-            },
-            deleteSelection: () => {
-                if (!state.selectedIds.length) return;
-                state.lines = state.lines.filter(l=>!state.selectedIds.includes(l.id));
-                state.pois = state.pois.filter(p=>!state.selectedIds.includes(p.id));
-                state.selectedIds=[]; historyManager.push(); actions.recalculate();
-            },
-            undo: historyManager.undo
-        };
-        function setMode(m) { state.mode = m; updateUI(); }
-        function updateUI() {
-            // Update mode buttons
-            ['SELECT','DRAW'].forEach(m => {
-                const el = document.getElementById(m==='SELECT'?'selectBtn':'drawBtn');
-                if (m===state.mode) el.classList.add('active'); else el.classList.remove('active');
-            });
-            document.querySelectorAll('[id^=entrance],[id^=emergency],[id^=surgery],[id^=icu],[id^=ward]').forEach(b=>{
-               if (state.mode === 'POI_'+b.id.replace('Btn','').toUpperCase()) b.classList.add('active'); else b.classList.remove('active');
-            });
-            // Update Legend labels
-            const isAcc = state.metricsResult.mode==='ACCESS';
-            document.getElementById('analysisMode').innerText = isAcc ? "Hybrid Access" : "Global Int";
-            document.getElementById('legendLow').innerText = isAcc ? "Far/Deep (Low)" : "Deep (Low)";
-            document.getElementById('legendHigh').innerText = isAcc ? "Near/Shallow (High)" : "Shallow (High)";
-            state.canvas.className = state.mode==='DRAW'?'cursor-draw':'cursor-select';
-        }
-        function showTooltip(x, y, id, metric, mode) {
-            const el = document.getElementById('tooltip');
-            el.classList.remove('hidden'); el.style.left = x+'px'; el.style.top = y+'px';
-            document.getElementById('tooltipId').innerText = id;
-            const content = document.getElementById('tooltipContent');
-            if (mode==='ACCESS') {
-                content.innerHTML = `<div class="flex justify-between gap-4"><span>Score</span> <span class="text-amber-400 font-mono font-bold">${metric.accessScore.toFixed(0)}</span></div>`;
-            } else {
-                content.innerHTML = `
-                    <div class="flex justify-between gap-4"><span>Global</span> <span class="text-yellow-400 font-mono font-bold">${metric.globalRaw.toFixed(2)}</span></div>
-                    <div class="flex justify-between gap-4"><span>Local</span> <span class="text-emerald-400 font-mono font-bold">${metric.localRaw.toFixed(2)}</span></div>
-                `;
-            }
-        }
-        function hideTooltip() { document.getElementById('tooltip').classList.add('hidden'); }
-        function updateDiagnostics() {
-            const metrics = state.metricsResult.data;
-            const ePoi = state.pois.find(p=>p.type==='EMERGENCY'), sPoi = state.pois.find(p=>p.type==='SURGERY'), iPoi = state.pois.find(p=>p.type==='ICU');
-            
-            // Emergency
-            let depthStr = '-'; let emStatus = 'N/A'; let emClass = 'bg-gray-100 dark:bg-white/5 text-gray-500';
-            if (ePoi && sPoi) {
-                const closest = (p) => { let m=Infinity, r=null; state.lines.forEach(l=>{const d=SyntaxEngine.distPointToSegment(p,l); if(d<m){m=d;r=l;}}); return r; };
-                const l1=closest(ePoi), l2=closest(sPoi);
-                if (l1&&l2&&metrics[l1.id]) {
-                    const d = metrics[l1.id].depths.get(l2.id);
-                    depthStr = d!==undefined?d:'X';
-                    if (d<=3) { emStatus='优秀 (Excellent)'; emClass='bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'; }
-                    else if (d>3) { emStatus='警告 (Warning)'; emClass='bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'; }
-                    else { emStatus='断连 (Disconnected)'; emClass='bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'; }
-                }
-            }
-            document.getElementById('emergencyDepth').innerText = depthStr;
-            const emEl = document.getElementById('emergencyStatus'); emEl.innerText = emStatus; emEl.className = `mt-2 text-[10px] font-bold px-2 py-1 rounded-md w-fit ${emClass}`;
+        // --- Helpers ---
+        const actions = {
+            recalculate: () => {
+                state.metricsResult = SyntaxEngine.calculate(state.lines, state.pois);
+                document.getElementById('objCount').innerText = state.lines.length;
+                updateDiagnostics(); updateUI();
+            },
+            deleteSelection: () => {
+                if (!state.selectedIds.length) return;
+                state.lines = state.lines.filter(l=>!state.selectedIds.includes(l.id));
+                state.pois = state.pois.filter(p=>!state.selectedIds.includes(p.id));
+                state.selectedIds=[]; historyManager.push(); actions.recalculate();
+            },
+            undo: historyManager.undo
+        };
+        function setMode(m) { state.mode = m; updateUI(); }
+        function updateUI() {
+            // Update mode buttons
+            ['SELECT','DRAW'].forEach(m => {
+                const el = document.getElementById(m==='SELECT'?'selectBtn':'drawBtn');
+                if (m===state.mode) el.classList.add('active'); else el.classList.remove('active');
+            });
+            document.querySelectorAll('[id^=entrance],[id^=emergency],[id^=surgery],[id^=icu],[id^=ward]').forEach(b=>{
+               if (state.mode === 'POI_'+b.id.replace('Btn','').toUpperCase()) b.classList.add('active'); else b.classList.remove('active');
+            });
+            // Update Legend labels
+            const isAcc = state.metricsResult.mode==='ACCESS';
+            document.getElementById('analysisMode').innerText = isAcc ? "Hybrid Access" : "Global Int";
+            document.getElementById('legendLow').innerText = isAcc ? "Far/Deep (Low)" : "Deep (Low)";
+            document.getElementById('legendHigh').innerText = isAcc ? "Near/Shallow (High)" : "Shallow (High)";
+            state.canvas.className = state.mode==='DRAW'?'cursor-draw':'cursor-select';
+        }
+        function showTooltip(x, y, id, metric, mode) {
+            const el = document.getElementById('tooltip');
+            el.classList.remove('hidden'); el.style.left = x+'px'; el.style.top = y+'px';
+            document.getElementById('tooltipId').innerText = id;
+            const content = document.getElementById('tooltipContent');
+            if (mode==='ACCESS') {
+                content.innerHTML = `<div class="flex justify-between gap-4"><span>Score</span> <span class="text-amber-400 font-mono font-bold">${metric.accessScore.toFixed(0)}</span></div>`;
+            } else {
+                content.innerHTML = `
+                    <div class="flex justify-between gap-4"><span>Global</span> <span class="text-yellow-400 font-mono font-bold">${metric.globalRaw.toFixed(2)}</span></div>
+                    <div class="flex justify-between gap-4"><span>Local</span> <span class="text-emerald-400 font-mono font-bold">${metric.localRaw.toFixed(2)}</span></div>
+                `;
+            }
+        }
+        function hideTooltip() { document.getElementById('tooltip').classList.add('hidden'); }
+        function updateDiagnostics() {
+            const metrics = state.metricsResult.data;
+            const ePoi = state.pois.find(p=>p.type==='EMERGENCY'), sPoi = state.pois.find(p=>p.type==='SURGERY'), iPoi = state.pois.find(p=>p.type==='ICU');
+            
+            // Emergency
+            let depthStr = '-'; let emStatus = 'N/A'; let emClass = 'bg-gray-100 dark:bg-white/5 text-gray-500';
+            if (ePoi && sPoi) {
+                const closest = (p) => { let m=Infinity, r=null; state.lines.forEach(l=>{const d=SyntaxEngine.distPointToSegment(p,l); if(d<m){m=d;r=l;}}); return r; };
+                const l1=closest(ePoi), l2=closest(sPoi);
+                if (l1&&l2&&metrics[l1.id]) {
+                    const d = metrics[l1.id].depths.get(l2.id);
+                    depthStr = d!==undefined?d:'X';
+                    if (d<=3) { emStatus='优秀 (Excellent)'; emClass='bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'; }
+                    else if (d>3) { emStatus='警告 (Warning)'; emClass='bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'; }
+                    else { emStatus='断连 (Disconnected)'; emClass='bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'; }
+                }
+            }
+            document.getElementById('emergencyDepth').innerText = depthStr;
+            const emEl = document.getElementById('emergencyStatus'); emEl.innerText = emStatus; emEl.className = `mt-2 text-[10px] font-bold px-2 py-1 rounded-md w-fit ${emClass}`;
 
-            // ICU
-            let icuVal = '0.00'; let icuMsg = 'N/A'; let icuClass = 'text-gray-500';
-            if (iPoi) {
-                let m=Infinity, r=null; state.lines.forEach(l=>{const d=SyntaxEngine.distPointToSegment(iPoi,l); if(d<m){m=d;r=l;}});
-                if (r&&metrics[r.id]) {
-                    const v = metrics[r.id].localRaw; icuVal = v.toFixed(2);
-                    if (v>0.8) { icuMsg='警告: 高人流区'; icuClass='text-red-500 font-bold'; }
-                    else { icuMsg='位置良好 (安静)'; icuClass='text-emerald-500'; }
-                }
-            }
-            document.getElementById('privacyValue').innerText = icuVal;
-            const icuEl = document.getElementById('privacyMsg'); icuEl.innerText = icuMsg; icuEl.className = `text-[10px] mt-2 ${icuClass}`;
+            // ICU
+            let icuVal = '0.00'; let icuMsg = 'N/A'; let icuClass = 'text-gray-500';
+            if (iPoi) {
+                let m=Infinity, r=null; state.lines.forEach(l=>{const d=SyntaxEngine.distPointToSegment(iPoi,l); if(d<m){m=d;r=l;}});
+                if (r&&metrics[r.id]) {
+                    const v = metrics[r.id].localRaw; icuVal = v.toFixed(2);
+                    if (v>0.8) { icuMsg='警告: 高人流区'; icuClass='text-red-500 font-bold'; }
+                    else { icuMsg='位置良好 (安静)'; icuClass='text-emerald-500'; }
+                }
+            }
+            document.getElementById('privacyValue').innerText = icuVal;
+            const icuEl = document.getElementById('privacyMsg'); icuEl.innerText = icuMsg; icuEl.className = `text-[10px] mt-2 ${icuClass}`;
 
-            // Synergy
-            const total = state.lines.length;
-            const high = Object.values(metrics).filter(m=>m.norm>0.75).length;
-            document.getElementById('mainStreetStatus').innerText = high>0?'已形成':'未形成';
-            document.getElementById('synergyBar').style.width = total>0?`${(high/total)*100}%`:'0%';
-        }
+            // Synergy
+            const total = state.lines.length;
+            const high = Object.values(metrics).filter(m=>m.norm>0.75).length;
+            document.getElementById('mainStreetStatus').innerText = high>0?'已形成':'未形成';
+            document.getElementById('synergyBar').style.width = total>0?`${(high/total)*100}%`:'0%';
+        }
 
-        window.onload = init;
-    </script>
+        window.onload = init;
+    </script>
 </body>
 </html>
